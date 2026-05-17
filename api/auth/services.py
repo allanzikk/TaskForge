@@ -1,5 +1,5 @@
 from models.user import User
-from extensions import db, bcrypt, jwt
+from extensions import db, bcrypt
 from flask_jwt_extended import create_access_token
 
 
