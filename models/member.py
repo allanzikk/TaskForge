@@ -9,6 +9,6 @@ class Member(db.Model):
     role = db.Column(db.String(6), nullable=False)
 
     user = db.relationship("User")
-    org = db.relationship("Organization")
+    org = db.relationship("Organization", back_populates="members")
 
     __table_args__ = (db.UniqueConstraint("user_id", "org_id"),)

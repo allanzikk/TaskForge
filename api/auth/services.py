@@ -22,7 +22,7 @@ def login_service(data):
                 "message": "invalid credentials."
             }
         }, 400
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
     return {
         "data": {
             "access_token": token,
