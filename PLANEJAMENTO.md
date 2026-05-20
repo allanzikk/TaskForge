@@ -21,6 +21,10 @@ Sistema de projetos e tarefas para times.
 - Owner pode tudo.
 - Admin pode gerenciar projetos e membros.
 - Member pode criar e editar tarefas, mas não gerenciar membros.
+- Apenas um convite por membro pode ser enviado a um usuário.
+
+
+
 
 ## Rotas iniciais
 

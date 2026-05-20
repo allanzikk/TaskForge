@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard | TaskForge</title>
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body data-page="dashboard">
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <section class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-row">
+          <div>
+            <p class="eyebrow">TaskForge</p>
+            <h2>Workspace</h2>
+          </div>
+          <button id="refresh-dashboard" class="icon-button" type="button" title="Atualizar dados" aria-label="Atualizar dados">↻</button>
+        </div>
+
+        <div class="user-strip">
+          <div>
+            <span class="muted">Sessão</span>
+            <strong data-current-user>Usuário</strong>
+          </div>
+          <button data-logout class="ghost-button small" type="button">Sair</button>
+        </div>
+
+        <nav class="page-nav" aria-label="Navegação principal">
+          <a class="nav-link active" href="./dashboard.html">Organizações</a>
+        </nav>
+
+        <form id="create-org-form" class="compact-form">
+          <label>
+            Nova organização
+            <input id="org-name-input" type="text" maxlength="30" placeholder="Nome da organização" required>
+          </label>
+          <button class="primary-button" type="submit">Criar</button>
+        </form>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Controle operacional</p>
+            <h1>Organizações</h1>
+          </div>
+          <span id="api-status" class="status-chip">API pronta</span>
+        </header>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span>Minhas organizações</span>
+            <strong id="my-orgs-stat">0</strong>
+          </div>
+          <div class="stat-card">
+            <span>Organizações listadas</span>
+            <strong id="all-orgs-stat">0</strong>
+          </div>
+          <div class="stat-card">
+            <span>Convites pendentes</span>
+            <strong id="invites-stat">0</strong>
+          </div>
+        </div>
+
+        <section id="invites-panel" class="panel is-hidden" aria-labelledby="invites-title">
+          <div class="panel-heading horizontal">
+            <div>
+              <p class="eyebrow">Pendentes</p>
+              <h2 id="invites-title">Convites recebidos</h2>
+            </div>
+            <span id="invites-count" class="count-pill">0</span>
+          </div>
+          <div id="invites-list" class="invites-grid"></div>
+        </section>
+
+        <div class="dashboard-grid">
+          <section class="panel" aria-labelledby="my-orgs-title">
+            <div class="panel-heading horizontal">
+              <div>
+                <p class="eyebrow">Membership</p>
+                <h2 id="my-orgs-title">Minhas organizações</h2>
+              </div>
+            </div>
+            <div id="my-orgs-list" class="card-grid"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="other-orgs-title">
+            <div class="panel-heading horizontal">
+              <div>
+                <p class="eyebrow">Catálogo</p>
+                <h2 id="other-orgs-title">Outras organizações</h2>
+              </div>
+            </div>
+            <div id="other-orgs-list" class="card-grid"></div>
+          </section>
+        </div>
+      </main>
+    </section>
+
+    <script src="./js/app.js" defer></script>
+  </body>
+</html>

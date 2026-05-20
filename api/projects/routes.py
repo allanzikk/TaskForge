@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from api.utils.org_utils import verify_org_member
-from api.projects.services import org_projects_service, create_project_service
+from api.projects.services import org_projects_service, create_project_service, project_service
 import uuid
 
 projects_bp = Blueprint("projects", __name__)
@@ -39,4 +39,12 @@ def create_project(org_id):
     
     data = request.get_json()
     response = create_project_service(org_id, data, user_id)
+    return response
+
+@projects_bp.route("/projects/<project_id>")
+@jwt_required()
+def project(project_id):
+    project_id = uuid.UUID(project_id)
+    user_id = uuid.UUID(get_jwt_identity())
+    response = project_service(project_id, user_id)
     return response

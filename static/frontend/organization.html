@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Organização | TaskForge</title>
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body data-page="organization">
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <section class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-row">
+          <div>
+            <p class="eyebrow">TaskForge</p>
+            <h2>Organização</h2>
+          </div>
+          <button id="refresh-organization" class="icon-button" type="button" title="Atualizar dados" aria-label="Atualizar dados">↻</button>
+        </div>
+
+        <div class="user-strip">
+          <div>
+            <span class="muted">Sessão</span>
+            <strong data-current-user>Usuário</strong>
+          </div>
+          <button data-logout class="ghost-button small" type="button">Sair</button>
+        </div>
+
+        <nav class="page-nav" aria-label="Navegação principal">
+          <a class="nav-link" href="./dashboard.html">Organizações</a>
+          <a id="project-nav-link" class="nav-link is-hidden" href="#">Projeto selecionado</a>
+        </nav>
+
+        <div id="invite-section" class="compact-form">
+          <label>
+            Convidar usuário
+            <div class="inline-form">
+              <input id="invite-username-search" type="text" placeholder="Username" autocomplete="off">
+              <button id="invite-search-btn" class="ghost-button" type="button">Buscar</button>
+            </div>
+          </label>
+          <div id="invite-result" class="is-hidden invite-result-card">
+          </div>
+        </div>
+
+        <form id="project-form" class="compact-form">
+          <label>
+            Novo projeto
+            <input id="project-name-input" type="text" maxlength="30" placeholder="Nome do projeto">
+          </label>
+          <button class="primary-button" type="submit">Criar</button>
+        </form>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Organização</p>
+            <h1 id="org-title">Carregando</h1>
+          </div>
+          <div class="topbar-actions">
+            <span id="role-chip" class="status-chip subdued">Membro</span>
+            <button id="delete-org-button" class="danger-button is-hidden" type="button">Excluir</button>
+          </div>
+        </header>
+
+        <section id="org-access-panel" class="empty-state is-hidden">
+          <div>
+            <p class="eyebrow">Acesso</p>
+            <h2>Você ainda não faz parte dessa organização.</h2>
+          </div>
+        </section>
+
+        <section id="org-content" class="org-workspace is-hidden">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span>Membros</span>
+              <strong id="members-stat">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Projetos</span>
+              <strong id="projects-stat">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>ID</span>
+              <button id="copy-org-id" class="link-button stat-link" type="button">Copiar</button>
+            </div>
+          </div>
+
+          <div class="content-grid two-columns">
+            <section class="panel" aria-labelledby="members-title">
+              <div class="panel-heading">
+                <p class="eyebrow">Equipe</p>
+                <h2 id="members-title">Membros</h2>
+              </div>
+              <div id="members-list" class="member-list"></div>
+            </section>
+
+            <section class="panel" aria-labelledby="projects-title">
+              <div class="panel-heading">
+                <p class="eyebrow">Portfólio</p>
+                <h2 id="projects-title">Projetos</h2>
+              </div>
+              <div id="project-list" class="project-list"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <dialog id="confirm-dialog" class="confirm-dialog">
+      <form method="dialog">
+        <p class="eyebrow">Confirmação</p>
+        <h2 id="confirm-title">Confirmar ação</h2>
+        <p id="confirm-message" class="muted">Essa ação não pode ser desfeita.</p>
+        <div class="dialog-actions">
+          <button class="ghost-button" value="cancel">Cancelar</button>
+          <button id="confirm-action" class="danger-button" value="confirm">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./js/app.js" defer></script>
+  </body>
+</html>

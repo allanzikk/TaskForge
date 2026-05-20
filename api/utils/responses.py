@@ -3,7 +3,7 @@
 #NOT_FOUND
 #INSUFFICIENT_PERMISSION
 #ORGANIZATION_ACCESS_DENIED
-#
+#INVITE_ACCESS_DENIED
 
 def success(data=None, message=None, status=200):
     response= {}

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Projeto | TaskForge</title>
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body data-page="project">
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <section class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-row">
+          <div>
+            <p class="eyebrow">TaskForge</p>
+            <h2>Projeto</h2>
+          </div>
+          <button id="refresh-project" class="icon-button" type="button" title="Atualizar dados" aria-label="Atualizar dados">↻</button>
+        </div>
+
+        <div class="user-strip">
+          <div>
+            <span class="muted">Sessão</span>
+            <strong data-current-user>Usuário</strong>
+          </div>
+          <button data-logout class="ghost-button small" type="button">Sair</button>
+        </div>
+
+        <nav class="page-nav" aria-label="Navegação principal">
+          <a class="nav-link" href="./dashboard.html">Organizações</a>
+          <a id="org-nav-link" class="nav-link is-hidden" href="#">Organização</a>
+        </nav>
+
+        <form id="task-form" class="compact-form">
+          <label>
+            Nova tarefa
+            <input id="task-name-input" type="text" maxlength="30" placeholder="Nome da tarefa">
+          </label>
+          <label>
+            Descrição
+            <textarea id="task-description-input" maxlength="200" rows="4" placeholder="Contexto da tarefa"></textarea>
+          </label>
+          <button class="primary-button" type="submit">Adicionar</button>
+        </form>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Projeto</p>
+            <h1 id="project-title">Carregando</h1>
+          </div>
+          <span id="api-status" class="status-chip">API pronta</span>
+        </header>
+
+        <section id="project-access-panel" class="empty-state is-hidden">
+          <div>
+            <p class="eyebrow">Acesso</p>
+            <h2>Você não tem acesso a esse projeto.</h2>
+          </div>
+        </section>
+
+        <section id="project-content" class="org-workspace is-hidden">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span>Tarefas</span>
+              <strong id="tasks-stat">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Organização</span>
+              <strong id="project-org-stat">-</strong>
+            </div>
+            <div class="stat-card">
+              <span>ID</span>
+              <button id="copy-project-id" class="link-button stat-link" type="button">Copiar</button>
+            </div>
+          </div>
+
+          <section class="panel" aria-labelledby="tasks-title">
+            <div class="panel-heading horizontal">
+              <div>
+                <p class="eyebrow">Execução</p>
+                <h2 id="tasks-title">Tarefas</h2>
+              </div>
+              <span id="task-permission-chip" class="status-chip subdued">Tarefas</span>
+            </div>
+            <div id="task-list" class="task-list"></div>
+          </section>
+        </section>
+      </main>
+    </section>
+
+    <dialog id="confirm-dialog" class="confirm-dialog">
+      <form method="dialog">
+        <p class="eyebrow">Confirmação</p>
+        <h2 id="confirm-title">Confirmar ação</h2>
+        <p id="confirm-message" class="muted">Essa ação não pode ser desfeita.</p>
+        <div class="dialog-actions">
+          <button class="ghost-button" value="cancel">Cancelar</button>
+          <button id="confirm-action" class="danger-button" value="confirm">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./js/app.js" defer></script>
+  </body>
+</html>

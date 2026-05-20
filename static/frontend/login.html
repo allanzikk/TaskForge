@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Entrar | TaskForge</title>
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body data-page="login">
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <section class="auth-screen">
+      <div class="auth-brand">
+        <p class="eyebrow">Organizações, projetos e tarefas</p>
+        <h1>TaskForge</h1>
+        <p>Um espaço escuro e direto para acompanhar times, projetos ativos e o trabalho que ainda precisa sair do papel.</p>
+      </div>
+
+      <main class="auth-panel" aria-labelledby="auth-title">
+        <div class="auth-tabs" role="tablist" aria-label="Autenticação">
+          <a class="tab-button active as-link" href="./login.html" role="tab" aria-selected="true">Entrar</a>
+          <a class="tab-button as-link" href="./register.html" role="tab" aria-selected="false">Criar conta</a>
+        </div>
+
+        <div class="panel-heading">
+          <p class="eyebrow">Acesso</p>
+          <h2 id="auth-title">Entrar no workspace</h2>
+        </div>
+
+        <form id="login-form" class="stacked-form">
+          <label>
+            Usuário
+            <input id="login-username" name="username" type="text" autocomplete="username" maxlength="20" required>
+          </label>
+          <label>
+            Senha
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <button id="login-submit" class="primary-button" type="submit">Entrar</button>
+        </form>
+
+        <div class="api-config">
+          <label>
+            API
+            <input id="api-base-input" type="text" spellcheck="false">
+          </label>
+          <button id="save-api-base" class="ghost-button" type="button">Salvar</button>
+        </div>
+      </main>
+    </section>
+
+    <script src="./js/app.js" defer></script>
+  </body>
+</html>

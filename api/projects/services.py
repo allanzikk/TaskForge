@@ -37,7 +37,7 @@ def create_project_service(org_id, data, user_id):
     if not member:
         return error(
             code="ORGANIZATION_ACCESS_DENIED", 
-            message="user doesnt have acces to this organization.",
+            message="user doesnt have access to this organization.",
             status=403)
     
     if member.role not in ["owner", "admin"]:
@@ -57,3 +57,26 @@ def create_project_service(org_id, data, user_id):
             "org_id": org.id
         }
     )
+
+def project_service(project_id, user_id):
+    project = db.session.get(Project, project_id)
+    member = verify_org_member(project.org_id, user_id)
+    if not member:
+        return error(
+            code="ORGANIZATION_ACCESS_DENIED", 
+            message="user doesnt have access to this organization.",
+            status=403)
+
+    tasks = []
+    for i in project.tasks:
+        task = {
+            "id": i.id,
+            "name": i.name
+        }
+        tasks.append(task)
+    return {
+        "id": project.id,
+        "name": project.name,
+        "org_id": project.org_id,
+        "tasks": tasks
+    }

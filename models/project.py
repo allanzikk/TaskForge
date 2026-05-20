@@ -9,4 +9,4 @@ class Project(db.Model):
     org_id = db.Column(UUID(as_uuid=True), db.ForeignKey("organization.id"), nullable=False)
 
     org = db.relationship("Organization", back_populates="projects")
-    
+    tasks = db.relationship("Task", back_populates="project")

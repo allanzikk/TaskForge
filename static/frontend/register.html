@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Criar conta | TaskForge</title>
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body data-page="register">
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <section class="auth-screen">
+      <div class="auth-brand">
+        <p class="eyebrow">Entrada aberta</p>
+        <h1>TaskForge</h1>
+        <p>Crie uma conta, abra sua primeira organização e chame outras pessoas para trabalhar nos projetos com você.</p>
+      </div>
+
+      <main class="auth-panel" aria-labelledby="auth-title">
+        <div class="auth-tabs" role="tablist" aria-label="Autenticação">
+          <a class="tab-button as-link" href="./login.html" role="tab" aria-selected="false">Entrar</a>
+          <a class="tab-button active as-link" href="./register.html" role="tab" aria-selected="true">Criar conta</a>
+        </div>
+
+        <div class="panel-heading">
+          <p class="eyebrow">Cadastro</p>
+          <h2 id="auth-title">Criar conta</h2>
+        </div>
+
+        <form id="register-form" class="stacked-form">
+          <label>
+            Usuário
+            <input id="register-username" name="username" type="text" autocomplete="username" maxlength="20" required>
+          </label>
+          <label>
+            Senha
+            <input id="register-password" name="password" type="password" autocomplete="new-password" required>
+          </label>
+          <button id="register-submit" class="primary-button" type="submit">Criar e entrar</button>
+        </form>
+
+        <div class="api-config">
+          <label>
+            API
+            <input id="api-base-input" type="text" spellcheck="false">
+          </label>
+          <button id="save-api-base" class="ghost-button" type="button">Salvar</button>
+        </div>
+      </main>
+    </section>
+
+    <script src="./js/app.js" defer></script>
+  </body>
+</html>
