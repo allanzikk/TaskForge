@@ -19,6 +19,7 @@ const appState = {
   projects: [],
   project: null,
   tasks: [],
+  editingTaskId: "",
 };
 
 init();
@@ -151,6 +152,8 @@ function initProjectPage() {
   });
 
   $("#task-form")?.addEventListener("submit", handleCreateTask);
+  $("#task-edit-form")?.addEventListener("submit", handleEditTask);
+  $("#task-edit-cancel")?.addEventListener("click", closeTaskEditDialog);
   $("#copy-project-id")?.addEventListener("click", () => {
     copyText(getQueryParam("id"), "ID do projeto copiado.");
   });
@@ -183,10 +186,13 @@ async function loadDashboard() {
 
   const [orgsPayload, invitesPayload] = await Promise.all([
     apiRequest("/organizations"),
-    apiRequest("/users/invites").catch(() => null),
+    apiRequest("/users/invites").catch((error) => {
+      if (isAuthFailure(error)) throw error;
+      return null;
+    }),
   ]);
 
-  const organizations = normalizeList(orgsPayload).map(normalizeOrganization);
+  const organizations = normalizeOrganizationsPayload(orgsPayload).map(normalizeOrganization);
   const detailed = await Promise.all(organizations.map(resolveDashboardOrganization));
 
   appState.dashboardOrgs = detailed;
@@ -226,6 +232,7 @@ function renderDashboard() {
   const myOrgs = appState.dashboardOrgs.filter((org) => org.isMember);
   const otherOrgs = appState.dashboardOrgs.filter((org) => !org.isMember);
   const invites = appState.invites || [];
+  const otherPanel = $("#other-orgs-panel");
 
   setText("#my-orgs-stat", String(myOrgs.length));
   setText("#all-orgs-stat", String(appState.dashboardOrgs.length));
@@ -233,6 +240,7 @@ function renderDashboard() {
   renderInvitesPanel(invites);
   renderOrganizationCards($("#my-orgs-list"), myOrgs, true);
   renderOrganizationCards($("#other-orgs-list"), otherOrgs, false);
+  otherPanel?.classList.toggle("is-hidden", otherOrgs.length === 0);
 }
 
 function renderInvitesPanel(invites) {
@@ -476,6 +484,7 @@ function renderProjectContent() {
   const organization = appState.organization;
   const membership = appState.membership;
   const canDelete = canManageOrganization(membership);
+  const canEdit = Boolean(membership);
 
   $("#project-access-panel")?.classList.add("is-hidden");
   $("#project-content")?.classList.remove("is-hidden");
@@ -492,7 +501,7 @@ function renderProjectContent() {
   }
 
   setFormEnabled("#task-form", Boolean(membership));
-  renderTasks($("#task-list"), appState.tasks, canDelete);
+  renderTasks($("#task-list"), appState.tasks, canDelete, canEdit);
 }
 
 function showProjectAccess(message) {
@@ -508,7 +517,7 @@ function showProjectAccess(message) {
   setFormEnabled("#task-form", false);
 }
 
-function renderTasks(container, tasks, canDelete) {
+function renderTasks(container, tasks, canDelete, canEdit) {
   if (!container) return;
   clearNode(container);
 
@@ -534,6 +543,15 @@ function renderTasks(container, tasks, canDelete) {
     id.className = "muted";
     id.textContent = shortId(task.id);
     actions.append(id);
+
+    if (canEdit) {
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "ghost-button";
+      edit.textContent = "Editar";
+      edit.addEventListener("click", () => openTaskEditDialog(task));
+      actions.append(edit);
+    }
 
     if (canDelete) {
       const remove = document.createElement("button");
@@ -724,6 +742,48 @@ async function handleCreateTask(event) {
   });
 }
 
+function openTaskEditDialog(task) {
+  const dialog = $("#task-edit-dialog");
+  const nameInput = $("#task-edit-name");
+  const descriptionInput = $("#task-edit-description");
+
+  appState.editingTaskId = task.id;
+  if (nameInput) nameInput.value = task.name || "";
+  if (descriptionInput) descriptionInput.value = task.description || "";
+
+  if (dialog?.showModal) {
+    dialog.showModal();
+  }
+}
+
+function closeTaskEditDialog() {
+  const dialog = $("#task-edit-dialog");
+  if (dialog?.open) {
+    dialog.close();
+  }
+  appState.editingTaskId = "";
+}
+
+async function handleEditTask(event) {
+  event.preventDefault();
+  const taskId = appState.editingTaskId;
+  const name = $("#task-edit-name")?.value.trim();
+  const description = $("#task-edit-description")?.value.trim();
+
+  if (!taskId || !name || !description) return;
+
+  await runWithStatus(event.submitter, async () => {
+    await apiRequest(`/tasks/${encodeURIComponent(taskId)}`, {
+      method: "PATCH",
+      body: { name, description },
+    });
+
+    closeTaskEditDialog();
+    toast("Tarefa atualizada.", "success");
+    await loadProjectPage();
+  });
+}
+
 async function handleDeleteTask(task) {
   const confirmed = await confirmAction({
     title: "Excluir tarefa",
@@ -799,6 +859,16 @@ function normalizeList(payload) {
   const data = readData(payload);
   if (Array.isArray(data)) return data;
   if (Array.isArray(payload)) return payload;
+  if (Array.isArray(data.items)) return data.items;
+  return [];
+}
+
+function normalizeOrganizationsPayload(payload) {
+  const data = readData(payload);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(data.organizations)) return data.organizations;
+  if (Array.isArray(data.orgs_user_is_member)) return data.orgs_user_is_member;
   if (Array.isArray(data.items)) return data.items;
   return [];
 }

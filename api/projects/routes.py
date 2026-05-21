@@ -10,7 +10,7 @@ projects_bp = Blueprint("projects", __name__)
 @projects_bp.route("/organizations/<org_id>/projects")
 @jwt_required()
 def org_projects(org_id):
-    user_id = get_jwt_identity()
+    user_id = uuid.UUID(get_jwt_identity())
     exists = verify_org_member(org_id, user_id)
     if not exists:
         return {

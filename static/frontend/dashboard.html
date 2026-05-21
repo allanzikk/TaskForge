@@ -34,7 +34,7 @@
         <form id="create-org-form" class="compact-form">
           <label>
             Nova organização
-            <input id="org-name-input" type="text" maxlength="30" placeholder="Nome da organização" required>
+            <input id="org-name-input" type="text" minlength="3" maxlength="30" placeholder="Nome da organização" required>
           </label>
           <button class="primary-button" type="submit">Criar</button>
         </form>
@@ -55,7 +55,7 @@
             <strong id="my-orgs-stat">0</strong>
           </div>
           <div class="stat-card">
-            <span>Organizações listadas</span>
+            <span>Organizações</span>
             <strong id="all-orgs-stat">0</strong>
           </div>
           <div class="stat-card">
@@ -86,7 +86,7 @@
             <div id="my-orgs-list" class="card-grid"></div>
           </section>
 
-          <section class="panel" aria-labelledby="other-orgs-title">
+          <section id="other-orgs-panel" class="panel" aria-labelledby="other-orgs-title">
             <div class="panel-heading horizontal">
               <div>
                 <p class="eyebrow">Catálogo</p>

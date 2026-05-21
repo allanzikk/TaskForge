@@ -9,7 +9,8 @@ org_bp = Blueprint("organizations", __name__)
 @org_bp.route("/organizations", methods=["GET"])
 @jwt_required()
 def organizations():
-    response = organizations_service()
+    user_id = uuid.UUID(get_jwt_identity())
+    response = organizations_service(user_id)
     return response
 
 @org_bp.route("/organizations", methods=["POST"])
@@ -23,6 +24,7 @@ def create_organization():
 @org_bp.route("/organizations/<org_id>", methods=["GET"])
 @jwt_required()
 def organization(org_id):
+    org_id = uuid.UUID(org_id)
     response = organization_service(org_id)
     return response
 

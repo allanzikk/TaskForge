@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import uuid
-from api.tasks.services import tasks_service, create_task_service, delete_task_service
+from api.tasks.services import tasks_service, create_task_service, delete_task_service, edit_task_service
 
 tasks_bp = Blueprint("tasks", __name__)
 
@@ -30,4 +30,13 @@ def delete_task(task_id):
     user_id = uuid.UUID(get_jwt_identity())
 
     response = delete_task_service(task_id, user_id)
+    return response
+
+@tasks_bp.route("/tasks/<task_id>", methods=["PATCH"])
+@jwt_required()
+def edit_task(task_id):
+    task_id = uuid.UUID(task_id)
+    user_id = uuid.UUID(get_jwt_identity())
+    data = request.get_json()
+    response = edit_task_service(task_id, user_id, data)
     return response

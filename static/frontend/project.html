@@ -35,11 +35,11 @@
         <form id="task-form" class="compact-form">
           <label>
             Nova tarefa
-            <input id="task-name-input" type="text" maxlength="30" placeholder="Nome da tarefa">
+            <input id="task-name-input" type="text" minlength="3" maxlength="30" placeholder="Nome da tarefa">
           </label>
           <label>
             Descrição
-            <textarea id="task-description-input" maxlength="200" rows="4" placeholder="Contexto da tarefa"></textarea>
+            <textarea id="task-description-input" minlength="3" maxlength="120" rows="4" placeholder="Contexto da tarefa"></textarea>
           </label>
           <button class="primary-button" type="submit">Adicionar</button>
         </form>
@@ -99,6 +99,25 @@
         <div class="dialog-actions">
           <button class="ghost-button" value="cancel">Cancelar</button>
           <button id="confirm-action" class="danger-button" value="confirm">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="task-edit-dialog" class="confirm-dialog task-edit-dialog">
+      <form id="task-edit-form">
+        <p class="eyebrow">Tarefa</p>
+        <h2>Editar tarefa</h2>
+        <label>
+          Nome
+          <input id="task-edit-name" type="text" minlength="3" maxlength="30" required>
+        </label>
+        <label>
+          Descrição
+          <textarea id="task-edit-description" minlength="3" maxlength="120" rows="4" required></textarea>
+        </label>
+        <div class="dialog-actions">
+          <button id="task-edit-cancel" class="ghost-button" type="button">Cancelar</button>
+          <button class="primary-button" type="submit">Salvar</button>
         </div>
       </form>
     </dialog>

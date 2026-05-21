@@ -7,35 +7,28 @@ from ..utils.org_utils import verify_org_member
 from ..utils.responses import error, success
 from models.invite import Invite
 
-def organizations_service():
-    organizations = Organization.query.all()
+def organizations_service(user_id):
+    members = Member.query.filter_by(user_id=user_id).all()
     organizations_json = []
-    for i in organizations:
+    for i in members:
         organization = {
-            "id": i.id,
-            "name": i.name
+            "id": i.org.id,
+            "name": i.org.name
         }
         organizations_json.append(organization)
-    return organizations_json, 200
+    return success(data=organizations_json)
 
 def create_organization_service(data, owner_id):
-    user = db.session.get(User, uuid.UUID(owner_id))
     name = data.get("name")
     if not name:
-        return {
-        "error": {
-            "code": "INVALID_DATA",
-            "message": "name is required."
-        }
-    }, 400
+        return error(code="INVALID_DATA", message="name is required.")
+    if not 3 <= len(name) <=30:
+        return error("INVALID_DATA", "name out of limit (3-30).")
+
+    user = db.session.get(User, uuid.UUID(owner_id))
     exists = Organization.query.filter_by(name=name).first()
     if exists is not None:
-        return {
-        "error": {
-            "code": "CONFLICT",
-            "message": "organization already exists."
-        }
-    }, 409
+        return error(code="CONFLICT", message="org already exists.", status=409)
 
     org = Organization(name=name)
     db.session.add(org)
@@ -43,24 +36,18 @@ def create_organization_service(data, owner_id):
     owner = Member(user=user, org=org, role="owner")
     db.session.add(owner)
     db.session.commit()
-    return {
-        "data": {
+    return success(
+        data= {
             "org_id": org.id,
             "org_name": org.name,
             "owner_id": owner.user_id
-        }
-    }, 201
+        }, status=201
+    )
 
 def organization_service(org_id):
-    org_id = uuid.UUID(org_id)
     org = db.session.get(Organization, org_id)
     if org is None:
-        return {
-            "error": {
-                "code": "NOT_FOUND",
-                "message": "organization not found."
-            }
-        }, 404
+        return error("NOT_FOUND", "org not found.", 404)
     members = Member.query.filter_by(org_id=org_id).all()
     members_json = []
     for i in members:
@@ -70,28 +57,39 @@ def organization_service(org_id):
             "role": i.role
         }
         members_json.append(member)
-    print(members_json)
-    return {
-        "data": {
+    return success(
+        data={
             "name": org.name,
-            "id": str(org.id),
+            "id": org.id,
             "members": members_json
         }
-    }, 200
+    )
 
-def remove_organization_service(org_id):
+def remove_organization_service(org_id, user_id):
+    member = verify_org_member(org_id, user_id)
+    if not member:
+        return error(
+            code="ACCESS_DENIED",
+            message="user doesnt have access to this organization.",
+            status=403)
+    
+    if member.role != "owner":
+        return error(code="INSUFFICIENT_PERMISSION",
+                    message="user needs to be owner.",
+                    status=403)
+
     org = db.session.get(Organization, org_id)
+    if org is None:
+        return error(code="NOT_FOUND", message="org not found.", status=404)
     db.session.delete(org)
     db.session.commit()
-    return {
-        "message": "removed."
-    }, 200
+    return success(message="org deleted.")
 
 def invite_service(user_invited_id, org_id, user_id):
     member = verify_org_member(org_id, user_id)
     if not member:
         return error(
-            code="ORGANIZATION_ACCESS_DENIED",
+            code="ACCESS_DENIED",
             message="user doesnt have access to this organization.",
             status=403)
     
@@ -119,12 +117,13 @@ def accept_invite_service(invite_id, user_id):
     invite = db.session.get(Invite, invite_id)
     if invite.user_invited_id != user_id:
         return error(
-            code="INVITE_ACCESS_DENIED",
+            code="ACCESS_DENIED",
             message="user doesnt have access to this invite.",
             status=403)
     
     member = Member(user=invite.user_invited, org=invite.org, role="member")
     db.session.add(member)
+    db.session.delete(invite)
     db.session.commit()
     return success(
         data={

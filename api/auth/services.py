@@ -1,7 +1,7 @@
 from models.user import User
 from extensions import db, bcrypt
 from flask_jwt_extended import create_access_token
-
+from ..utils.responses import error, success
 
 def login_service(data):
     username = data.get("username")
@@ -37,21 +37,19 @@ def create_account_service(data):
     username = data.get("username")
     password = data.get("password")
     if not username or not password:
-        return {
-            "error": {
-                "code": "INVALID_DATA",
-                "messsage": "username and password required."
-            }
-        }, 400
-    
+        return error(code="INVALID_DATA", message="username and password are required.")
+    if 30 < len(username):
+        return error("INVALID_DATA", "username can't be longer than 30 characters.")
+    if len(username) < 4:
+        return error("INVALID_DATA", "username can't be shorter than 30 characters.")
+    if len(password) > 72:
+        return error("INVALID_DATA", "password can't be longer than 72 characters.")
+    if len(password) < 8:
+        return error("INVALID_DATA", "password can't be shorter than 8 characters.")
+
     username_exists = User.query.filter_by(username=username).first()
     if username_exists is not None:
-        return {
-            "error": {
-                "code": "CONFLICT",
-                "message": "username already exists."
-            }
-        }, 409
+        return error(code="CONFLICT", message="username already exists", status=409)
     
     password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
     user = User(username=username, password_hash=password_hash)

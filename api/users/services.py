@@ -4,7 +4,11 @@ from models.member import Member
 from models.invite import Invite
 
 def user_service(username):
+    if not username:
+        return error(code="INVALID_DATA", message="username is required.")
     user = User.query.filter_by(username=username).first()
+    if not user:
+        return error(code="NOT_FOUND", message="user not found.", status=404)
     orgs_user_is_member = [i.org for i in Member.query.filter_by(user_id=user.id).all()]
 
     if not user:
