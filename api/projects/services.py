@@ -19,7 +19,9 @@ def org_projects_service(org_id):
     for i in org.projects:
         project = {
             "project_id": i.id,
-            "name": i.name
+            "name": i.name,
+            "progress": round(i.tasks_completed / len(i.tasks) * 100, 1) if i.tasks else 0,
+            "created_at": i.created_at
         }
         projects_json.append(project)
     return projects_json, 200
@@ -28,7 +30,7 @@ def create_project_service(org_id, data, user_id):
     name = data.get("name")
     if not name:
         return error("INVALID_DATA", "name can't be empty.")
-    if not 3 <= name <= 30:
+    if not 3 <= len(name) <= 30:
         return error(code="INVALID_DATA", message="name out of limit (3-30).")
 
     org = get_org_by_id(org_id)
@@ -57,8 +59,10 @@ def create_project_service(org_id, data, user_id):
     db.session.commit()
     return success(
         data={
-            "name": name,
+            "name": project.name,
             "id": project.id,
+            "progress": 0,
+            "created_at": project.created_at,
             "org_name": org.name,
             "org_id": org.id
         }
@@ -80,12 +84,15 @@ def project_service(project_id, user_id):
     for i in project.tasks:
         task = {
             "id": i.id,
-            "name": i.name
+            "name": i.name,
+            "is_completed": i.is_completed
         }
         tasks.append(task)
-    return {
+    return success(data={
         "id": project.id,
         "name": project.name,
+        "created_at": project.created_at,
+        "progress": round(project.tasks_completed / len(project.tasks) * 100, 1) if project.tasks else 0,
         "org_id": project.org_id,
         "tasks": tasks
-    }
+    })

@@ -4,35 +4,24 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Projeto | TaskForge</title>
+    <link rel="icon" href="http://localhost:5000/static/icons/TaskForgeLogo.png">
     <link rel="stylesheet" href="./css/styles.css">
   </head>
   <body data-page="project">
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
-
     <section class="app-shell">
       <aside class="sidebar">
-        <div class="brand-row">
-          <div>
-            <p class="eyebrow">TaskForge</p>
-            <h2>Projeto</h2>
-          </div>
-          <button id="refresh-project" class="icon-button" type="button" title="Atualizar dados" aria-label="Atualizar dados">↻</button>
+        <div class="brand-lockup sidebar-brand">
+          <img class="brand-mark" src="http://localhost:5000/static/icons/TaskForgeLogo.png" alt="TaskForge">
+          <strong>TaskForge</strong>
         </div>
-
-        <div class="user-strip">
-          <div>
-            <span class="muted">Sessão</span>
-            <strong data-current-user>Usuário</strong>
-          </div>
-          <button data-logout class="ghost-button small" type="button">Sair</button>
-        </div>
-
         <nav class="page-nav" aria-label="Navegação principal">
-          <a class="nav-link" href="./dashboard.html">Organizações</a>
-          <a id="org-nav-link" class="nav-link is-hidden" href="#">Organização</a>
+          <a class="nav-link" href="./dashboard.html"><span class="nav-icon">V</span>Visão geral</a>
+          <a id="org-nav-link" class="nav-link is-hidden" href="#"><span class="nav-icon">O</span>Organização</a>
+          <a class="nav-link active" href="#task-list"><span class="nav-icon">T</span>Tarefas</a>
         </nav>
 
-        <form id="task-form" class="compact-form">
+        <form id="task-form" class="compact-form sidebar-form">
           <label>
             Nova tarefa
             <input id="task-name-input" type="text" minlength="3" maxlength="30" placeholder="Nome da tarefa">
@@ -41,8 +30,26 @@
             Descrição
             <textarea id="task-description-input" minlength="3" maxlength="120" rows="4" placeholder="Contexto da tarefa"></textarea>
           </label>
-          <button class="primary-button" type="submit">Adicionar</button>
+          <label>
+            Prioridade
+            <select id="task-priority-input" required>
+              <option value="normal">Normal</option>
+              <option value="low">Baixa</option>
+              <option value="high">Alta</option>
+              <option value="very high">Muito alta</option>
+            </select>
+          </label>
+          <button class="primary-button" type="submit">Adicionar tarefa</button>
         </form>
+
+        <div class="sidebar-user">
+          <div class="avatar" data-current-avatar>U</div>
+          <div>
+            <strong data-current-user>Usuário</strong>
+            <span>Conta ativa</span>
+          </div>
+          <button data-logout class="icon-menu" type="button" aria-label="Sair">Sair</button>
+        </div>
       </aside>
 
       <main class="workspace">
@@ -50,8 +57,12 @@
           <div>
             <p class="eyebrow">Projeto</p>
             <h1 id="project-title">Carregando</h1>
+            <p id="project-subtitle" class="muted">Tarefas e execução do projeto selecionado.</p>
           </div>
-          <span id="api-status" class="status-chip">API pronta</span>
+          <div class="topbar-actions">
+            <span id="api-status" class="status-chip">API pronta</span>
+            <span id="task-permission-chip" class="status-chip subdued">Tarefas</span>
+          </div>
         </header>
 
         <section id="project-access-panel" class="empty-state is-hidden">
@@ -61,20 +72,28 @@
           </div>
         </section>
 
-        <section id="project-content" class="org-workspace is-hidden">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <span>Tarefas</span>
+        <section id="project-content" class="dashboard-content is-hidden">
+          <div class="metrics-grid compact">
+            <article class="metric-card accent-orange">
+              <span class="metric-icon">T</span>
+              <p>Tarefas</p>
               <strong id="tasks-stat">0</strong>
-            </div>
-            <div class="stat-card">
-              <span>Organização</span>
+            </article>
+            <article class="metric-card accent-green">
+              <span class="metric-icon">%</span>
+              <p>Progresso</p>
+              <strong id="project-completed-stat">0%</strong>
+            </article>
+            <article class="metric-card accent-blue">
+              <span class="metric-icon">O</span>
+              <p>Organização</p>
               <strong id="project-org-stat">-</strong>
-            </div>
-            <div class="stat-card">
-              <span>ID</span>
-              <button id="copy-project-id" class="link-button stat-link" type="button">Copiar</button>
-            </div>
+            </article>
+            <article class="metric-card accent-green">
+              <span class="metric-icon">ID</span>
+              <p>Identificador</p>
+              <button id="copy-project-id" class="link-button stat-link" type="button">Copiar ID</button>
+            </article>
           </div>
 
           <section class="panel" aria-labelledby="tasks-title">
@@ -83,9 +102,9 @@
                 <p class="eyebrow">Execução</p>
                 <h2 id="tasks-title">Tarefas</h2>
               </div>
-              <span id="task-permission-chip" class="status-chip subdued">Tarefas</span>
+              <span class="status-chip subdued">Status por fallback</span>
             </div>
-            <div id="task-list" class="task-list"></div>
+            <div id="task-list" class="task-table"></div>
           </section>
         </section>
       </main>
@@ -99,25 +118,6 @@
         <div class="dialog-actions">
           <button class="ghost-button" value="cancel">Cancelar</button>
           <button id="confirm-action" class="danger-button" value="confirm">Confirmar</button>
-        </div>
-      </form>
-    </dialog>
-
-    <dialog id="task-edit-dialog" class="confirm-dialog task-edit-dialog">
-      <form id="task-edit-form">
-        <p class="eyebrow">Tarefa</p>
-        <h2>Editar tarefa</h2>
-        <label>
-          Nome
-          <input id="task-edit-name" type="text" minlength="3" maxlength="30" required>
-        </label>
-        <label>
-          Descrição
-          <textarea id="task-edit-description" minlength="3" maxlength="120" rows="4" required></textarea>
-        </label>
-        <div class="dialog-actions">
-          <button id="task-edit-cancel" class="ghost-button" type="button">Cancelar</button>
-          <button class="primary-button" type="submit">Salvar</button>
         </div>
       </form>
     </dialog>

@@ -18,6 +18,7 @@ def user_service(username):
         data={
             "username": user.username,
             "id": user.id,
+            "created_at": user.created_at,
             "orgs_user_is_member": orgs_user_is_member
         }
     )
@@ -29,6 +30,7 @@ def invites_service(user_id):
         invite = {
             "id":i.id,
             "member_id": i.member_id,
+            "created_at": i.created_at,
             "member_username": i.member.user.username,
             "org_id": i.org_id,
             "org_name": i.org.name

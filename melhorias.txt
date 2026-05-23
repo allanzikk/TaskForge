@@ -1,0 +1,5 @@
+barra de porcentagem de conclusão de projetos poderia mudar de cor conforme a porcentagem
+
+implementação de feature de perfil e coisas como pfp
+
+colocar ícones decentes na logo do taskforge e nas features

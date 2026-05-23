@@ -40,6 +40,7 @@ def create_organization_service(data, owner_id):
         data= {
             "org_id": org.id,
             "org_name": org.name,
+            "created_at": org.created_at,
             "owner_id": owner.user_id
         }, status=201
     )
@@ -57,11 +58,23 @@ def organization_service(org_id):
             "role": i.role
         }
         members_json.append(member)
+    projects = []
+    for i in org.projects:
+        project = {
+            "id": i.id,
+            "name": i.name,
+            "created_at": i.created_at,
+            "progress": round(i.tasks_completed / len(i.tasks) * 100, 1) if i.tasks else 0
+        }
+        projects.append(project)
+
     return success(
         data={
             "name": org.name,
             "id": org.id,
-            "members": members_json
+            "created_at": org.created_at,
+            "members": members_json,
+            "projects": projects
         }
     )
 
@@ -106,6 +119,8 @@ def invite_service(user_invited_id, org_id, user_id):
     db.session.commit()
     return success(
         data={
+            "invite_id": invite.id,
+            "created_at": invite.created_at,
             "member_id": member.id,
             "org_id": member.org_id,
             "user_invited_id": user_invited.id
@@ -132,3 +147,81 @@ def accept_invite_service(invite_id, user_id):
             "org_id": member.org_id
         }, message="created.", status= 201
     )
+
+def members_service(org_id, user_id):
+    org = db.session.get(Organization, org_id)
+    if org is None:
+        return error(code="NOT_FOUND", message="org not found.", status=404)
+    
+    is_member = verify_org_member(org_id, user_id)
+    if not is_member:
+        return error(
+            code="ACCESS_DENIED",
+            message="user doesnt have access to this org.",
+            status=403)
+
+    members = []
+    for i in org.members:
+        member = {
+            "member_id": i.id,
+            "username": i.user.username,
+            "user_id": i.user_id,
+            "role": i.role,
+            "created_at": i.created_at
+        }
+        members.append(member)
+
+    return success(data=members)
+
+def member_service(member_id):
+    member = db.session.get(Member, member_id)
+    if not member:
+        return error(code="NOT_FOUND", message="member not found.", status=404)
+    return success(data={
+        "user_id":member.user_id,
+        "username": member.user.username,
+        "role": member.role,
+        "joined_at": member.created_at,
+        "org_id": member.org_id,
+        "org_name": member.org.name
+    })
+
+def edit_member_service(data, member_id, user_id):
+    role = data.get("role")
+    if not role:
+        return error(code="INVALID_DATA", message="role is required.")
+
+    if role not in ["member", "admin", "owner"]:
+        return error(code="INVALID_DATA", message="role is not in the allowed formats ('member', 'admin', 'owner').")
+
+    member = db.session.get(Member, member_id)
+    if not member:
+        return error(code="NOT_FOUND", message="member not found.", status=404)
+    
+    if member.role == "owner":
+        return error(code="INSUFFICIENT_PERMISSION",
+                    message="owner can't be edited.",
+                    status=403)
+    
+    member_editor = verify_org_member(member.org_id, user_id)
+    if not member_editor:
+        return error(
+            code="ACCESS_DENIED",
+            message="user doesnt have access to this org.",
+            status=403)
+    
+    if member_editor.role not in ["owner", "admin"]:
+        return error(code="INSUFFICIENT_PERMISSION",
+                    message="user needs to be owner or admin.",
+                    status=403)
+    
+    member.role = role
+    db.session.commit()
+    return success(data={
+        "user_id":member.user_id,
+        "username": member.user.username,
+        "role": member.role,
+        "joined_at": member.created_at,
+        "org_id": member.org_id,
+        "org_name": member.org.name
+    })

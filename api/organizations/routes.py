@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from .services import organizations_service, create_organization_service, organization_service, remove_organization_service, invite_service, accept_invite_service
+from .services import organizations_service, create_organization_service, organization_service, remove_organization_service, invite_service, accept_invite_service, members_service, member_service, edit_member_service
 import uuid
 
 org_bp = Blueprint("organizations", __name__)
@@ -33,6 +33,30 @@ def organization(org_id):
 def remove_organization(org_id):
     org_id = uuid.UUID(org_id)
     response = remove_organization_service(org_id)
+    return response
+
+@org_bp.route("/organizations/<org_id>/members")
+@jwt_required()
+def members(org_id):
+    org_id = uuid.UUID(org_id)
+    user_id = uuid.UUID(get_jwt_identity())
+    response = members_service(org_id, user_id)
+    return response
+
+@org_bp.route("/organizations/members/<member_id>")
+@jwt_required()
+def member(member_id):
+    member_id = uuid.UUID(member_id)
+    response = member_service(member_id)
+    return response
+
+@org_bp.route("/organizations/members/<member_id>", methods=["PATCH"])
+@jwt_required()
+def edit_member(member_id):
+    member_id = uuid.UUID(member_id)
+    user_id = uuid.UUID(get_jwt_identity())
+    data = request.get_json()
+    response = edit_member_service(data, member_id, user_id)
     return response
 
 @org_bp.route("/organizations/<org_id>/invite", methods=["POST"])

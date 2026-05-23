@@ -14,7 +14,10 @@ def login_service(data):
             }
         }, 400
     user = User.query.with_entities(User.password_hash, User.id, User.username).filter_by(username=username).first()
-    response = bcrypt.check_password_hash(user.password_hash, password)
+    try:
+        response = bcrypt.check_password_hash(user.password_hash, password)
+    except AttributeError:
+        response = None
     if user is None or not response:
         return {
             "error": {

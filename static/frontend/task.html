@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tarefa | TaskForge</title>
+    <link rel="icon" href="http://localhost:5000/static/icons/TaskForgeLogo.png">
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body data-page="task">
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <section class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-lockup sidebar-brand">
+          <img class="brand-mark" src="http://localhost:5000/static/icons/TaskForgeLogo.png" alt="TaskForge">
+          <strong>TaskForge</strong>
+        </div>
+        <nav class="page-nav" aria-label="Navegação principal">
+          <a class="nav-link" href="./dashboard.html"><span class="nav-icon">V</span>Visão geral</a>
+          <a id="org-nav-link" class="nav-link is-hidden" href="#"><span class="nav-icon">O</span>Organização</a>
+          <a id="project-nav-link" class="nav-link is-hidden" href="#"><span class="nav-icon">P</span>Projeto</a>
+          <a class="nav-link active" href="#"><span class="nav-icon">T</span>Tarefa</a>
+        </nav>
+
+        <div class="sidebar-user">
+          <div class="avatar" data-current-avatar>U</div>
+          <div>
+            <strong data-current-user>Usuário</strong>
+            <span>Conta ativa</span>
+          </div>
+          <button data-logout class="icon-menu" type="button" aria-label="Sair">Sair</button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Tarefa</p>
+            <h1 id="task-title">Carregando</h1>
+            <p id="task-subtitle" class="muted">Detalhes e ações desta tarefa.</p>
+          </div>
+          <div class="topbar-actions">
+            <span id="api-status" class="status-chip">API pronta</span>
+            <span id="task-status-chip" class="status-chip subdued">—</span>
+          </div>
+        </header>
+
+        <section id="task-access-panel" class="empty-state is-hidden">
+          <div>
+            <p class="eyebrow">Acesso</p>
+            <h2>Você não tem acesso a essa tarefa.</h2>
+          </div>
+        </section>
+
+        <section id="task-content" class="dashboard-content is-hidden">
+          <div class="metrics-grid compact">
+            <article class="metric-card accent-orange">
+              <span class="metric-icon">!</span>
+              <p>Prioridade</p>
+              <strong id="task-priority-stat">—</strong>
+            </article>
+            <article class="metric-card accent-blue">
+              <span class="metric-icon">P</span>
+              <p>Projeto</p>
+              <strong id="task-project-stat">—</strong>
+            </article>
+            <article class="metric-card accent-green">
+              <span class="metric-icon">OK</span>
+              <p>Status</p>
+              <strong id="task-completed-stat">Pendente</strong>
+            </article>
+            <article class="metric-card accent-purple">
+              <span class="metric-icon">D</span>
+              <p>Criada em</p>
+              <strong id="task-date-stat">—</strong>
+            </article>
+          </div>
+
+          <div class="content-grid two-columns">
+            <section class="panel" aria-labelledby="task-detail-title">
+              <div class="panel-heading">
+                <p class="eyebrow">Detalhes</p>
+                <h2 id="task-detail-title">Descrição</h2>
+              </div>
+              <p id="task-description" class="task-description-text muted">—</p>
+            </section>
+
+            <section id="task-actions-panel" class="panel is-hidden" aria-labelledby="task-actions-title">
+              <div class="panel-heading">
+                <p class="eyebrow">Ações</p>
+                <h2 id="task-actions-title">Gerenciar</h2>
+              </div>
+              <div class="task-action-stack">
+                <button id="complete-task-btn" class="primary-button" type="button">Concluir tarefa</button>
+                <button id="edit-task-btn" class="ghost-button" type="button">Editar tarefa</button>
+                <button id="delete-task-btn" class="danger-button" type="button">Excluir tarefa</button>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <dialog id="confirm-dialog" class="confirm-dialog">
+      <form method="dialog">
+        <p class="eyebrow">Confirmação</p>
+        <h2 id="confirm-title">Confirmar ação</h2>
+        <p id="confirm-message" class="muted">Essa ação não pode ser desfeita.</p>
+        <div class="dialog-actions">
+          <button class="ghost-button" value="cancel">Cancelar</button>
+          <button id="confirm-action" class="danger-button" value="confirm">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="task-edit-dialog" class="confirm-dialog">
+      <form id="task-edit-form">
+        <p class="eyebrow">Tarefa</p>
+        <h2>Editar tarefa</h2>
+        <label>
+          Nome
+          <input id="task-edit-name" type="text" minlength="3" maxlength="30" required>
+        </label>
+        <label>
+          Descrição
+          <textarea id="task-edit-description" minlength="3" maxlength="120" rows="4" required></textarea>
+        </label>
+        <label>
+          Prioridade
+          <select id="task-edit-priority" required>
+            <option value="normal">Normal</option>
+            <option value="low">Baixa</option>
+            <option value="high">Alta</option>
+            <option value="very high">Muito alta</option>
+          </select>
+        </label>
+        <div class="dialog-actions">
+          <button id="task-edit-cancel" class="ghost-button" type="button">Cancelar</button>
+          <button class="primary-button" type="submit">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./js/app.js" defer></script>
+  </body>
+</html>

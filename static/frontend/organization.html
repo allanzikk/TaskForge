@@ -4,35 +4,24 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Organização | TaskForge</title>
+    <link rel="icon" href="http://localhost:5000/static/icons/TaskForgeLogo.png">
     <link rel="stylesheet" href="./css/styles.css">
   </head>
   <body data-page="organization">
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
-
     <section class="app-shell">
       <aside class="sidebar">
-        <div class="brand-row">
-          <div>
-            <p class="eyebrow">TaskForge</p>
-            <h2>Organização</h2>
-          </div>
-          <button id="refresh-organization" class="icon-button" type="button" title="Atualizar dados" aria-label="Atualizar dados">↻</button>
+        <div class="brand-lockup sidebar-brand">
+          <img class="brand-mark" src="http://localhost:5000/static/icons/TaskForgeLogo.png" alt="TaskForge">
+          <strong>TaskForge</strong>
         </div>
-
-        <div class="user-strip">
-          <div>
-            <span class="muted">Sessão</span>
-            <strong data-current-user>Usuário</strong>
-          </div>
-          <button data-logout class="ghost-button small" type="button">Sair</button>
-        </div>
-
         <nav class="page-nav" aria-label="Navegação principal">
-          <a class="nav-link" href="./dashboard.html">Organizações</a>
-          <a id="project-nav-link" class="nav-link is-hidden" href="#">Projeto selecionado</a>
+          <a id="overview-nav-link" class="nav-link" href="./dashboard.html"><span class="nav-icon">V</span>Visão geral</a>
+          <a class="nav-link active" href="#members-list"><span class="nav-icon">M</span>Membros</a>
+          <a class="nav-link" href="#project-list"><span class="nav-icon">P</span>Projetos</a>
         </nav>
 
-        <div id="invite-section" class="compact-form">
+        <div id="invite-section" class="compact-form sidebar-form">
           <label>
             Convidar usuário
             <div class="inline-form">
@@ -40,17 +29,25 @@
               <button id="invite-search-btn" class="ghost-button" type="button">Buscar</button>
             </div>
           </label>
-          <div id="invite-result" class="is-hidden invite-result-card">
-          </div>
+          <div id="invite-result" class="is-hidden invite-result-card"></div>
         </div>
 
-        <form id="project-form" class="compact-form">
+        <form id="project-form" class="compact-form sidebar-form">
           <label>
             Novo projeto
             <input id="project-name-input" type="text" minlength="3" maxlength="30" placeholder="Nome do projeto">
           </label>
-          <button class="primary-button" type="submit">Criar</button>
+          <button class="primary-button" type="submit">Criar projeto</button>
         </form>
+
+        <div class="sidebar-user">
+          <div class="avatar" data-current-avatar>U</div>
+          <div>
+            <strong data-current-user>Usuário</strong>
+            <span>Conta ativa</span>
+          </div>
+          <button data-logout class="icon-menu" type="button" aria-label="Sair">Sair</button>
+        </div>
       </aside>
 
       <main class="workspace">
@@ -58,9 +55,11 @@
           <div>
             <p class="eyebrow">Organização</p>
             <h1 id="org-title">Carregando</h1>
+            <p id="org-subtitle" class="muted">Membros, projetos e permissões desta organização.</p>
           </div>
           <div class="topbar-actions">
             <span id="role-chip" class="status-chip subdued">Membro</span>
+            <span id="api-status" class="status-chip">API pronta</span>
             <button id="delete-org-button" class="danger-button is-hidden" type="button">Excluir</button>
           </div>
         </header>
@@ -72,20 +71,23 @@
           </div>
         </section>
 
-        <section id="org-content" class="org-workspace is-hidden">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <span>Membros</span>
+        <section id="org-content" class="dashboard-content is-hidden">
+          <div class="metrics-grid compact">
+            <article class="metric-card accent-purple">
+              <span class="metric-icon">M</span>
+              <p>Membros</p>
               <strong id="members-stat">0</strong>
-            </div>
-            <div class="stat-card">
-              <span>Projetos</span>
+            </article>
+            <article class="metric-card accent-blue">
+              <span class="metric-icon">P</span>
+              <p>Projetos</p>
               <strong id="projects-stat">0</strong>
-            </div>
-            <div class="stat-card">
-              <span>ID</span>
-              <button id="copy-org-id" class="link-button stat-link" type="button">Copiar</button>
-            </div>
+            </article>
+            <article class="metric-card accent-green">
+              <span class="metric-icon">ID</span>
+              <p>Identificador</p>
+              <button id="copy-org-id" class="link-button stat-link" type="button">Copiar ID</button>
+            </article>
           </div>
 
           <div class="content-grid two-columns">
@@ -94,7 +96,7 @@
                 <p class="eyebrow">Equipe</p>
                 <h2 id="members-title">Membros</h2>
               </div>
-              <div id="members-list" class="member-list"></div>
+              <div id="members-list" class="member-stack"></div>
             </section>
 
             <section class="panel" aria-labelledby="projects-title">
@@ -102,7 +104,7 @@
                 <p class="eyebrow">Portfólio</p>
                 <h2 id="projects-title">Projetos</h2>
               </div>
-              <div id="project-list" class="project-list"></div>
+              <div id="project-list" class="project-rows"></div>
             </section>
           </div>
         </section>
@@ -121,6 +123,24 @@
       </form>
     </dialog>
 
+    <dialog id="member-edit-dialog" class="confirm-dialog">
+      <form id="member-edit-form">
+        <p class="eyebrow">Membro</p>
+        <h2>Editar cargo</h2>
+        <p id="member-edit-username" class="muted"></p>
+        <label>
+          Cargo
+          <select id="member-edit-role" required>
+            <option value="member">Membro</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <div class="dialog-actions">
+          <button id="member-edit-cancel" class="ghost-button" type="button">Cancelar</button>
+          <button class="primary-button" type="submit">Salvar</button>
+        </div>
+      </form>
+    </dialog>
     <script src="./js/app.js" defer></script>
   </body>
 </html>
