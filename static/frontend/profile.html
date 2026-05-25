@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Perfil | TaskForge</title>
+    <link rel="icon" href="http://localhost:5000/static/icons/TaskForgeLogo.png">
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body data-page="profile">
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <section class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-lockup sidebar-brand">
+          <img class="brand-mark" src="http://localhost:5000/static/icons/TaskForgeLogo.png" alt="TaskForge">
+          <strong>TaskForge</strong>
+        </div>
+        <nav class="page-nav" aria-label="Navegação principal">
+          <a class="nav-link" href="./dashboard.html"><span class="nav-icon">V</span>Visão geral</a>
+          <a class="nav-link active" href="#"><span class="nav-icon">U</span>Perfil</a>
+        </nav>
+
+        <div class="sidebar-user">
+          <div class="avatar-upload-wrap">
+            <span class="avatar avatar-upload" data-current-avatar>
+              <span class="avatar-upload-hint">✎</span>
+            </span>
+            <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
+          </div>
+          <div>
+            <strong data-current-user>Usuário</strong>
+            <span>Conta ativa</span>
+          </div>
+          <button data-logout class="icon-menu" type="button" aria-label="Sair">Sair</button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div class="topbar-org-heading">
+            <span id="profile-avatar" class="avatar avatar-large"></span>
+            <div>
+              <p class="eyebrow">Perfil</p>
+              <h1 id="profile-username">Carregando</h1>
+              <p id="profile-date" class="muted"></p>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <span id="api-status" class="status-chip">API pronta</span>
+          </div>
+        </header>
+
+        <section id="profile-access-panel" class="empty-state is-hidden">
+          <div>
+            <p class="eyebrow">Perfil</p>
+            <h2>Usuário não encontrado.</h2>
+          </div>
+        </section>
+
+        <section id="profile-content" class="dashboard-content is-hidden">
+          <div class="content-grid two-columns">
+
+            <section class="panel" aria-labelledby="profile-orgs-title">
+              <div class="panel-heading">
+                <p class="eyebrow">Organizações</p>
+                <h2 id="profile-orgs-title">Membro em</h2>
+              </div>
+              <div id="profile-orgs-list" class="profile-orgs-grid"></div>
+            </section>
+
+            <section id="profile-self-panel" class="panel is-hidden" aria-labelledby="profile-edit-title">
+              <div class="panel-heading">
+                <p class="eyebrow">Configurações</p>
+                <h2 id="profile-edit-title">Editar perfil</h2>
+              </div>
+              <form id="profile-edit-form" class="compact-form">
+                <label>
+                  Username
+                  <input id="profile-edit-username" type="text" minlength="4" maxlength="30" placeholder="Novo username">
+                </label>
+                <label>
+                  Foto de perfil
+                  <input id="profile-pfp-input" type="file" accept="image/jpeg,image/png,image/gif">
+                </label>
+                <div class="inline-form">
+                  <button class="primary-button" type="submit">Salvar</button>
+                  <button id="remove-pfp-btn" class="ghost-button" type="button">Remover foto</button>
+                </div>
+              </form>
+            </section>
+
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <script src="./js/app.js" defer></script>
+  </body>
+</html>

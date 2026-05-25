@@ -4,6 +4,7 @@ from models.project import Project
 from ..utils.project_utils import get_project_by_name, get_project_by_id
 from ..utils.org_utils import verify_org_member, get_org_by_id
 from api.utils.responses import success, error
+from flask import request
 
 
 
@@ -94,5 +95,7 @@ def project_service(project_id, user_id):
         "created_at": project.created_at,
         "progress": round(project.tasks_completed / len(project.tasks) * 100, 1) if project.tasks else 0,
         "org_id": project.org_id,
+        "org_name": project.org.name,
+        "image_url": request.host_url+project.org.image.img_path if project.org.image else None,
         "tasks": tasks
     })

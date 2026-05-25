@@ -2,7 +2,6 @@ const storageKeys = {
   token: "taskforge.token",
   user: "taskforge.user",
   apiBase: "taskforge.apiBase",
-  selectedOrg: "taskforge.selectedOrg",
 };
 
 const defaultApiBase = window.location.protocol === "file:"
@@ -14,14 +13,14 @@ const appState = {
   token: localStorage.getItem(storageKeys.token) || "",
   user: readJson(storageKeys.user),
   organizations: [],
-  currentOrgId: localStorage.getItem(storageKeys.selectedOrg) || "",
+  invites: [],
   organization: null,
   membership: null,
   projects: [],
-  projectTaskMap: new Map(),
   tasks: [],
-  invites: [],
   project: null,
+  task: null,
+  profile: null,
   editingTaskId: "",
   editingMemberId: "",
 };
@@ -40,30 +39,26 @@ function init() {
     organization: initOrganizationPage,
     project: initProjectPage,
     task: initTaskPage,
+    profile: initProfilePage,
   };
 
   (initializers[page] || initRedirect)();
 }
+
+// ── Page initializers ─────────────────────────────────────
 
 function initRedirect() {
   goTo(appState.token ? "dashboard.html" : "login.html", true);
 }
 
 function initLogin() {
-  if (appState.token) {
-    goTo("dashboard.html", true);
-    return;
-  }
+  if (appState.token) { goTo("dashboard.html", true); return; }
 
   $("#login-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const username = $("#login-username").value.trim();
     const password = $("#login-password").value;
-
-    if (!username || !password) {
-      toast("Preencha usuário e senha.", "error");
-      return;
-    }
+    if (!username || !password) { toast("Preencha usuário e senha.", "error"); return; }
 
     await runWithStatus($("#login-submit"), async () => {
       const payload = await apiRequest("/login", {
@@ -71,7 +66,6 @@ function initLogin() {
         body: { username, password },
         skipAuth: true,
       });
-
       saveSession(readData(payload), username);
       toast("Sessão iniciada.", "success");
       goTo("dashboard.html");
@@ -80,20 +74,13 @@ function initLogin() {
 }
 
 function initRegister() {
-  if (appState.token) {
-    goTo("dashboard.html", true);
-    return;
-  }
+  if (appState.token) { goTo("dashboard.html", true); return; }
 
   $("#register-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const username = $("#register-username").value.trim();
     const password = $("#register-password").value;
-
-    if (!username || !password) {
-      toast("Preencha usuário e senha.", "error");
-      return;
-    }
+    if (!username || !password) { toast("Preencha usuário e senha.", "error"); return; }
 
     await runWithStatus($("#register-submit"), async () => {
       await apiRequest("/create-account", {
@@ -101,13 +88,11 @@ function initRegister() {
         body: { username, password },
         skipAuth: true,
       });
-
       const payload = await apiRequest("/login", {
         method: "POST",
         body: { username, password },
         skipAuth: true,
       });
-
       saveSession(readData(payload), username);
       toast("Conta criada.", "success");
       goTo("dashboard.html");
@@ -117,299 +102,132 @@ function initRegister() {
 
 function initDashboard() {
   if (!requireAuth()) return;
-
-  $("#org-switcher")?.addEventListener("change", async (event) => {
-    appState.currentOrgId = event.target.value;
-    persistSelectedOrg();
-    await runWithStatus(null, loadCurrentOrganizationOverview);
-  });
-
   $("#create-org-form")?.addEventListener("submit", handleCreateOrganization);
-  $("#global-search")?.addEventListener("input", renderDashboardOverview);
+  initPfpUpload();
   runWithStatus(null, loadDashboard);
 }
 
 function initOrganizationPage() {
   if (!requireAuth()) return;
-
   $("#project-form")?.addEventListener("submit", handleCreateProject);
   $("#invite-search-btn")?.addEventListener("click", handleSearchUser);
   $("#invite-username-search")?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      handleSearchUser();
-    }
+    if (event.key === "Enter") { event.preventDefault(); handleSearchUser(); }
   });
   $("#delete-org-button")?.addEventListener("click", handleDeleteOrganization);
   $("#member-edit-form")?.addEventListener("submit", handleEditMember);
   $("#member-edit-cancel")?.addEventListener("click", closeMemberEditDialog);
-  $("#copy-org-id")?.addEventListener("click", () => {
-    copyText(currentOrgIdFromPage(), "ID da organização copiado.");
+  $("#org-edit-form")?.addEventListener("submit", handleEditOrganization);
+  $("#remove-org-img-btn")?.addEventListener("click", handleRemoveOrgImage);
+  $("#edit-org-button")?.addEventListener("click", () => {
+    $("#org-edit-form")?.classList.toggle("is-hidden");
   });
-
+  $("#copy-org-id")?.addEventListener("click", () => {
+    copyText(getQueryParam("id"), "ID da organização copiado.");
+  });
+  initPfpUpload();
   runWithStatus(null, loadOrganizationPage);
 }
 
 function initProjectPage() {
   if (!requireAuth()) return;
-
   $("#task-form")?.addEventListener("submit", handleCreateTask);
   $("#copy-project-id")?.addEventListener("click", () => {
     copyText(getQueryParam("id"), "ID do projeto copiado.");
   });
-
+  initPfpUpload();
   runWithStatus(null, loadProjectPage);
 }
 
 function initTaskPage() {
   if (!requireAuth()) return;
-
   $("#task-edit-form")?.addEventListener("submit", handleEditTask);
   $("#task-edit-cancel")?.addEventListener("click", closeTaskEditDialog);
   $("#edit-task-btn")?.addEventListener("click", () => openTaskEditDialog(appState.task));
   $("#complete-task-btn")?.addEventListener("click", () => handleCompleteTask(appState.task, $("#complete-task-btn")));
   $("#delete-task-btn")?.addEventListener("click", () => handleDeleteTask(appState.task));
-
+  initPfpUpload();
   runWithStatus(null, loadTaskPage);
 }
 
-function bindCommonControls() {
-  const apiBaseInput = $("#api-base-input");
-  if (apiBaseInput) {
-    apiBaseInput.value = getApiBase();
-  }
-
-  $("#save-api-base")?.addEventListener("click", () => {
-    const nextBase = normalizeApiBase(apiBaseInput?.value);
-    localStorage.setItem(storageKeys.apiBase, nextBase);
-    if (apiBaseInput) apiBaseInput.value = nextBase;
-    toast("Conexão salva.", "success");
-  });
-
-  document.querySelectorAll("[data-logout]").forEach((button) => {
-    button.addEventListener("click", logout);
-  });
-
-  document.querySelectorAll("[data-coming-soon]").forEach((button) => {
-    button.addEventListener("click", () => {
-      toast(`${button.dataset.comingSoon} ainda depende de rotas novas no servidor.`, "info");
-    });
-  });
+function initProfilePage() {
+  if (!requireAuth()) return;
+  initPfpUpload();
+  $("#profile-edit-form")?.addEventListener("submit", handleEditProfile);
+  $("#remove-pfp-btn")?.addEventListener("click", handleRemovePfp);
+  runWithStatus(null, loadProfilePage);
 }
+
+// ── Dashboard ─────────────────────────────────────────────
 
 async function loadDashboard() {
   setApiStatus("Sincronizando");
-  const [orgsPayload, invitesPayload] = await Promise.all([
-    apiRequest("/organizations"),
-    apiRequest("/users/invites").catch((error) => {
-      if (isAuthFailure(error)) throw error;
+
+  const [userPayload, invitesPayload] = await Promise.all([
+    apiRequest(`/users/${encodeURIComponent(appState.user?.username)}`).catch((e) => {
+      if (isAuthFailure(e)) throw e;
+      return null;
+    }),
+    apiRequest("/users/invites").catch((e) => {
+      if (isAuthFailure(e)) throw e;
       return null;
     }),
   ]);
 
-  appState.organizations = normalizeOrganizationsPayload(orgsPayload).map(normalizeOrganization);
+  const userData = readData(userPayload);
+  appState.organizations = Array.isArray(userData.orgs_user_is_member)
+    ? userData.orgs_user_is_member.map(normalizeOrganization)
+    : [];
   appState.invites = normalizeInvitesList(invitesPayload);
-  chooseCurrentOrganization();
-  renderOrgSwitcher();
-  renderInvitesPanel(appState.invites);
 
-  if (!appState.currentOrgId) {
-    renderDashboardWithoutOrganization();
-    setApiStatus("API pronta");
-    return;
-  }
-
-  await loadCurrentOrganizationOverview();
-}
-
-async function loadCurrentOrganizationOverview() {
-  if (!appState.currentOrgId) {
-    renderDashboardWithoutOrganization();
-    return;
-  }
-
-  setApiStatus("Sincronizando");
-  const orgId = appState.currentOrgId;
-  const orgSummary = appState.organizations.find((org) => org.id === orgId);
-  const [orgResult, projectsResult] = await Promise.all([
-    apiRequest(`/organizations/${encodeURIComponent(orgId)}`).catch((error) => {
-      if (isAuthFailure(error)) throw error;
-      return null;
-    }),
-    apiRequest(`/organizations/${encodeURIComponent(orgId)}/projects`).catch((error) => {
-      if (isAuthFailure(error)) throw error;
-      return null;
-    }),
-  ]);
-
-  appState.organization = orgResult
-    ? normalizeOrganizationDetail(orgResult, orgId)
-    : fallbackOrganizationDetail(orgSummary, orgId);
-  appState.membership = findCurrentMembership(appState.organization.members);
-  appState.projects = normalizeList(projectsResult || appState.organization.projects).map(normalizeProject);
-  appState.projectTaskMap = await loadTasksForProjects(appState.projects);
-  appState.tasks = flattenProjectTasks();
-
-  renderDashboardOverview();
+  renderDashboard();
   setApiStatus("API pronta");
 }
 
-async function loadTasksForProjects(projects) {
-  const pairs = await Promise.all(projects.map(async (project) => {
-    try {
-      const payload = await apiRequest(`/projects/${encodeURIComponent(project.id)}/tasks`);
-      return [project.id, normalizeList(payload).map((task) => normalizeTask(task, project))];
-    } catch (error) {
-      if (isAuthFailure(error)) throw error;
-      return [project.id, []];
-    }
-  }));
-
-  return new Map(pairs);
-}
-
-function flattenProjectTasks() {
-  const tasks = [];
-  appState.projectTaskMap.forEach((projectTasks) => {
-    tasks.push(...projectTasks);
-  });
-  return tasks;
-}
-
-function renderDashboardWithoutOrganization() {
+function renderDashboard() {
   setText("#dashboard-title", `Olá, ${appState.user?.username || "usuário"}`);
-  setText("#dashboard-subtitle", "Crie uma organização para começar.");
-  $("#dashboard-content")?.classList.add("is-hidden");
-  $("#no-org-state")?.classList.remove("is-hidden");
-  renderOrgSwitcher();
-}
-
-function renderDashboardOverview() {
-  if (!appState.organization) {
-    renderDashboardWithoutOrganization();
-    return;
-  }
-
-  $("#no-org-state")?.classList.add("is-hidden");
-  $("#dashboard-content")?.classList.remove("is-hidden");
-
-  const query = ($("#global-search")?.value || "").trim().toLowerCase();
-  const pendingTasks = appState.tasks.filter((task) => !isTaskDone(task));
-  const doneTasks = appState.tasks.filter(isTaskDone);
-
-  setText("#dashboard-title", `Olá, ${appState.user?.username || "usuário"}`);
-  setText("#dashboard-subtitle", `Aqui está o resumo de ${appState.organization.name}.`);
-  setText("#members-stat", String(appState.organization.members.length));
-  setText("#projects-stat", String(appState.projects.length));
-  setText("#completed-stat", String(doneTasks.length));
-  setText("#pending-stat", String(pendingTasks.length));
-
-  updateDashboardLinks();
-  renderOrgSwitcher();
-  renderOverviewProjects(filterProjects(appState.projects, query));
-  renderOverviewMembers(filterMembers(appState.organization.members, query));
-  renderOverviewTasks(filterTasks(pendingTasks, query));
-  renderActivityFallback();
   renderInvitesPanel(appState.invites);
+  renderOrgCards(appState.organizations);
 }
 
-function updateDashboardLinks() {
-  const orgId = appState.organization?.id || appState.currentOrgId;
-  const firstProject = appState.projects[0];
-  const orgUrl = `./organization.html?id=${encodeURIComponent(orgId)}`;
-
-  setHref("#members-nav-link", orgUrl);
-  setHref("#projects-nav-link", orgUrl);
-  setHref("#view-projects-link", orgUrl);
-  setHref("#view-members-link", orgUrl);
-  setHref("#tasks-nav-link", firstProject
-    ? `./project.html?id=${encodeURIComponent(firstProject.id)}&org=${encodeURIComponent(orgId)}`
-    : orgUrl);
-}
-
-function renderOrgSwitcher() {
-  const switcher = $("#org-switcher");
-  if (!switcher) return;
-
-  clearNode(switcher);
-  if (appState.organizations.length === 0) {
-    const option = document.createElement("option");
-    option.textContent = "Nenhuma organização";
-    option.value = "";
-    switcher.append(option);
-    switcher.disabled = true;
-    return;
-  }
-
-  switcher.disabled = false;
-  appState.organizations.forEach((org) => {
-    const option = document.createElement("option");
-    option.value = org.id;
-    option.textContent = org.name;
-    option.selected = org.id === appState.currentOrgId;
-    switcher.append(option);
-  });
-}
-
-function renderOverviewProjects(projects) {
-  const container = $("#overview-projects");
+function renderOrgCards(orgs) {
+  const container = $("#orgs-list");
   if (!container) return;
   clearNode(container);
 
-  const visible = projects.slice(0, 5);
-  if (visible.length === 0) {
-    container.append(emptyMessage("Nenhum projeto para exibir."));
+  if (!orgs.length) {
+    container.append(emptyMessage("Você ainda não faz parte de nenhuma organização."));
     return;
   }
 
-  visible.forEach((project, index) => {
-    container.append(createProjectRow(project, {
-      orgId: appState.organization.id,
-      tasks: appState.projectTaskMap.get(project.id) || [],
-      index,
-    }));
+  orgs.forEach((org) => {
+    const card = document.createElement("a");
+    card.className = "org-card";
+    card.href = `./organization.html?id=${encodeURIComponent(org.id)}`;
+
+    const imgEl = document.createElement("span");
+    imgEl.className = "org-card-img";
+    if (org.image_url) {
+      const img = document.createElement("img");
+      img.src = org.image_url;
+      img.alt = org.name;
+      img.className = "avatar-img";
+      imgEl.append(img);
+    } else {
+      imgEl.textContent = initials(org.name);
+    }
+
+    const info = document.createElement("span");
+    info.className = "org-card-info";
+    const name = document.createElement("strong");
+    name.textContent = org.name;
+    const desc = document.createElement("span");
+    desc.textContent = org.description || "";
+    info.append(name, desc);
+
+    card.append(imgEl, info);
+    container.append(card);
   });
-}
-
-function renderOverviewMembers(members) {
-  const container = $("#overview-members");
-  if (!container) return;
-  clearNode(container);
-
-  const visible = members.slice(0, 5);
-  if (visible.length === 0) {
-    container.append(emptyMessage("Nenhum membro cadastrado."));
-    return;
-  }
-
-  visible.forEach((member) => {
-    container.append(createMemberLine(member));
-  });
-}
-
-function renderOverviewTasks(tasks) {
-  const container = $("#overview-tasks");
-  if (!container) return;
-  clearNode(container);
-
-  const visible = tasks.slice(0, 6);
-  if (visible.length === 0) {
-    container.append(emptyMessage("Nenhuma tarefa pendente."));
-    return;
-  }
-
-  visible.forEach((task) => {
-    container.append(createTaskRow(task, { compact: true, canEdit: false, canDelete: false }));
-  });
-}
-
-function renderActivityFallback() {
-  const container = $("#activity-list");
-  if (!container) return;
-  clearNode(container);
-
-  container.append(createActivityItem("API", "Atividade recente depende de GET /organizations/<org_id>/activity."));
-  container.append(createActivityItem("TASK", "Status, prazos e responsáveis aparecem quando o servidor expuser esses campos."));
 }
 
 function renderInvitesPanel(invites) {
@@ -448,26 +266,22 @@ function renderInvitesPanel(invites) {
   });
 }
 
+// ── Organization page ─────────────────────────────────────
+
 async function loadOrganizationPage() {
-  const orgId = currentOrgIdFromPage();
-  if (!orgId) {
-    showOrganizationAccess("Organização não informada.");
-    return;
-  }
+  const orgId = getQueryParam("id");
+  if (!orgId) { showOrganizationAccess("Organização não informada."); return; }
 
   setApiStatus("Sincronizando");
   const [orgResult, projectsPayload, membersPayload] = await Promise.all([
-    apiRequest(`/organizations/${encodeURIComponent(orgId)}`).catch((error) => {
-      if (isAuthFailure(error)) throw error;
-      return null;
+    apiRequest(`/organizations/${encodeURIComponent(orgId)}`).catch((e) => {
+      if (isAuthFailure(e)) throw e; return null;
     }),
-    apiRequest(`/organizations/${encodeURIComponent(orgId)}/projects`).catch((error) => {
-      if (isAuthFailure(error)) throw error;
-      return [];
+    apiRequest(`/organizations/${encodeURIComponent(orgId)}/projects`).catch((e) => {
+      if (isAuthFailure(e)) throw e; return [];
     }),
-    apiRequest(`/organizations/${encodeURIComponent(orgId)}/members`).catch((error) => {
-      if (isAuthFailure(error)) throw error;
-      return null;
+    apiRequest(`/organizations/${encodeURIComponent(orgId)}/members`).catch((e) => {
+      if (isAuthFailure(e)) throw e; return null;
     }),
   ]);
 
@@ -475,161 +289,133 @@ async function loadOrganizationPage() {
     ? normalizeOrganizationDetail(orgResult, orgId)
     : fallbackOrganizationDetail(null, orgId);
 
-  // Substitui membros pelos do endpoint dedicado (contém member_id e created_at)
   const richMembers = normalizeList(membersPayload).map(normalizeMember);
-  if (richMembers.length > 0) {
-    appState.organization.members = richMembers;
-  }
-  appState.currentOrgId = appState.organization.id;
+  if (richMembers.length > 0) appState.organization.members = richMembers;
+
   appState.membership = findCurrentMembership(appState.organization.members);
   appState.projects = normalizeList(projectsPayload).map(normalizeProject);
-  appState.projectTaskMap = await loadTasksForProjects(appState.projects);
-  persistSelectedOrg();
+
   renderOrganizationPage();
   setApiStatus("API pronta");
 }
 
 function renderOrganizationPage() {
-  const organization = appState.organization;
+  const org = appState.organization;
   const membership = appState.membership;
 
-  if (!organization) {
-    showOrganizationAccess("Organização não encontrada.");
-    return;
-  }
+  if (!org) { showOrganizationAccess("Organização não encontrada."); return; }
 
-  setText("#org-title", organization.name);
-  setText("#org-subtitle", `${organization.members.length} membro(s), ${appState.projects.length} projeto(s).`);
+  setText("#org-title", org.name);
+  setText("#org-subtitle", org.description || "");
   setText("#role-chip", membership ? membership.role : "Sem acesso");
-  setText("#members-stat", String(organization.members.length));
+  setText("#members-stat", String(org.members.length));
   setText("#projects-stat", String(appState.projects.length));
-  setHref("#overview-nav-link", `./dashboard.html?org=${encodeURIComponent(organization.id)}`);
 
-  $("#delete-org-button")?.classList.toggle("is-hidden", !isOwner(membership));
-  setFormEnabled("#invite-section", canManageOrganization(membership));
-  setFormEnabled("#project-form", canManageOrganization(membership));
-
-  if (!membership) {
-    showOrganizationAccess("Você ainda não faz parte dessa organização.");
-    return;
+  const orgImg = $("#org-header-img");
+  if (orgImg) {
+    if (org.image_url) {
+      orgImg.src = org.image_url;
+      orgImg.classList.remove("is-hidden");
+    } else {
+      orgImg.classList.add("is-hidden");
+    }
   }
+
+  const canManage = canManageOrganization(membership);
+  $("#delete-org-button")?.classList.toggle("is-hidden", !isOwner(membership));
+  $("#edit-org-button")?.classList.toggle("is-hidden", !canManage);
+  setFormEnabled("#project-form", canManage);
+  setFormEnabled("#org-edit-form", canManage);
+  setFormEnabled("#invite-section", canManage);
+
+  if (!membership) { showOrganizationAccess("Você ainda não faz parte dessa organização."); return; }
 
   $("#org-access-panel")?.classList.add("is-hidden");
   $("#org-content")?.classList.remove("is-hidden");
-  renderMembersList($("#members-list"), organization.members);
-  renderProjectsList($("#project-list"), appState.projects, organization.id);
+  renderMembersList($("#members-list"), org.members);
+  renderProjectsList($("#project-list"), appState.projects, org.id);
 }
 
 function showOrganizationAccess(message) {
-  const panel = $("#org-access-panel");
   $("#org-content")?.classList.add("is-hidden");
-  setFormEnabled("#invite-section", false);
   setFormEnabled("#project-form", false);
-
+  setFormEnabled("#invite-section", false);
+  const panel = $("#org-access-panel");
   if (panel) {
     panel.classList.remove("is-hidden");
-    const title = panel.querySelector("h2");
-    if (title) title.textContent = message;
+    const t = panel.querySelector("h2");
+    if (t) t.textContent = message;
   }
 }
 
 function renderMembersList(container, members) {
   if (!container) return;
   clearNode(container);
-
-  if (!members.length) {
-    container.append(emptyMessage("Sem membros cadastrados."));
-    return;
-  }
-
+  if (!members.length) { container.append(emptyMessage("Sem membros.")); return; }
   const canEdit = canManageOrganization(appState.membership);
-  members.forEach((member) => {
-    container.append(createMemberLine(member, { canEdit: canEdit && member.role !== "owner" }));
-  });
+  members.forEach((m) => container.append(createMemberLine(m, { canEdit: canEdit && m.role !== "owner" })));
 }
 
 function renderProjectsList(container, projects, orgId) {
   if (!container) return;
   clearNode(container);
-
-  if (!projects.length) {
-    container.append(emptyMessage("Sem projetos nesta organização."));
-    return;
-  }
-
-  projects.forEach((project, index) => {
-    container.append(createProjectRow(project, {
-      orgId,
-      tasks: appState.projectTaskMap.get(project.id) || [],
-      index,
-    }));
-  });
+  if (!projects.length) { container.append(emptyMessage("Sem projetos.")); return; }
+  projects.forEach((p, i) => container.append(createProjectRow(p, { orgId, index: i })));
 }
+
+// ── Project page ──────────────────────────────────────────
 
 async function loadProjectPage() {
   const projectId = getQueryParam("id");
-  if (!projectId) {
-    showProjectAccess("Projeto não informado.");
-    return;
-  }
+  if (!projectId) { showProjectAccess("Projeto não informado."); return; }
 
   setApiStatus("Sincronizando");
-  const projectPayload = await apiRequest(`/projects/${encodeURIComponent(projectId)}`).catch((error) => {
-    if (isAuthFailure(error)) throw error;
-    toast(error.message || "Projeto carregado parcialmente.", "error");
+  const projectPayload = await apiRequest(`/projects/${encodeURIComponent(projectId)}`).catch((e) => {
+    if (isAuthFailure(e)) throw e;
     return { data: { id: projectId, name: "Projeto", org_id: getQueryParam("org") } };
   });
-  const project = normalizeProjectDetail(projectPayload, projectId);
-  const orgId = getQueryParam("org") || project.org_id;
-  appState.project = project;
+
+  appState.project = normalizeProjectDetail(projectPayload, projectId);
+  const orgId = getQueryParam("org") || appState.project.org_id;
 
   if (orgId) {
-    const orgPayload = await apiRequest(`/organizations/${encodeURIComponent(orgId)}`).catch((error) => {
-      if (isAuthFailure(error)) throw error;
-      return null;
+    const orgPayload = await apiRequest(`/organizations/${encodeURIComponent(orgId)}`).catch((e) => {
+      if (isAuthFailure(e)) throw e; return null;
     });
     appState.organization = orgPayload
       ? normalizeOrganizationDetail(orgPayload, orgId)
       : fallbackOrganizationDetail(null, orgId);
-    appState.currentOrgId = appState.organization.id;
     appState.membership = findCurrentMembership(appState.organization.members);
-    persistSelectedOrg();
   }
 
-  const tasksPayload = await apiRequest(`/projects/${encodeURIComponent(projectId)}/tasks`).catch((error) => {
-    if (isAuthFailure(error)) throw error;
-    toast(error.message || "Não foi possível carregar as tarefas agora.", "error");
-    return [];
+  const tasksPayload = await apiRequest(`/projects/${encodeURIComponent(projectId)}/tasks`).catch((e) => {
+    if (isAuthFailure(e)) throw e; return [];
   });
-  appState.tasks = normalizeList(tasksPayload).map((task) => normalizeTask(task, project));
+  appState.tasks = normalizeList(tasksPayload).map((t) => normalizeTask(t, appState.project));
+
   renderProjectPage();
   setApiStatus("API pronta");
 }
 
 function renderProjectPage() {
   const project = appState.project;
-  const organization = appState.organization;
+  const org = appState.organization;
   const membership = appState.membership;
 
-  if (!project) {
-    showProjectAccess("Projeto não encontrado.");
-    return;
-  }
+  if (!project) { showProjectAccess("Projeto não encontrado."); return; }
 
   $("#project-access-panel")?.classList.add("is-hidden");
   $("#project-content")?.classList.remove("is-hidden");
   setText("#project-title", project.name);
-  setText("#project-subtitle", organization ? `Projeto em ${organization.name}.` : "Projeto selecionado.");
+  setText("#project-subtitle", org ? `Projeto em ${org.name}.` : "");
   setText("#tasks-stat", String(appState.tasks.length));
-  setText("#project-completed-stat", `${formatProgress(appState.project?.progress ?? 0)}%`);
-  setText("#project-org-stat", organization?.name || shortId(project.org_id));
-  setText("#task-permission-chip", canManageOrganization(membership) ? "Pode excluir" : "Criar tarefas");
+  setText("#project-completed-stat", `${formatProgress(project.progress ?? 0)}%`);
+  setText("#project-org-stat", org?.name || shortId(project.org_id));
 
   const orgLink = $("#org-nav-link");
-  if (orgLink && (project.org_id || organization?.id)) {
-    const orgId = project.org_id || organization.id;
+  if (orgLink && (project.org_id || org?.id)) {
+    orgLink.href = `./organization.html?id=${encodeURIComponent(project.org_id || org.id)}`;
     orgLink.classList.remove("is-hidden");
-    orgLink.href = `./organization.html?id=${encodeURIComponent(orgId)}`;
   }
 
   setFormEnabled("#task-form", Boolean(membership));
@@ -645,65 +431,51 @@ function showProjectAccess(message) {
   const panel = $("#project-access-panel");
   if (panel) {
     panel.classList.remove("is-hidden");
-    const title = panel.querySelector("h2");
-    if (title) title.textContent = message;
+    const t = panel.querySelector("h2");
+    if (t) t.textContent = message;
   }
 }
 
+// ── Task page ─────────────────────────────────────────────
+
 async function loadTaskPage() {
   const taskId = getQueryParam("id");
-  const projectId = getQueryParam("project");
-  const orgId = getQueryParam("org");
-
-  if (!taskId) {
-    showTaskAccess("Tarefa não informada.");
-    return;
-  }
+  if (!taskId) { showTaskAccess("Tarefa não informada."); return; }
 
   setApiStatus("Sincronizando");
-
-  const taskPayload = await apiRequest(`/tasks/${encodeURIComponent(taskId)}`).catch((error) => {
-    if (isAuthFailure(error)) throw error;
-    toast(error.message || "Erro ao carregar tarefa.", "error");
-    return null;
+  const taskPayload = await apiRequest(`/tasks/${encodeURIComponent(taskId)}`).catch((e) => {
+    if (isAuthFailure(e)) throw e; return null;
   });
 
-  if (!taskPayload) {
-    showTaskAccess("Tarefa não encontrada.");
-    return;
-  }
+  if (!taskPayload) { showTaskAccess("Tarefa não encontrada."); return; }
 
-  const data = readData(taskPayload);
-  appState.task = normalizeTask(data);
+  appState.task = normalizeTask(readData(taskPayload));
 
-  const resolvedOrgId = orgId || "";
-  const resolvedProjectId = stringify(data.project_id) || projectId;
+  const orgId = getQueryParam("org");
+  const projectId = stringify(appState.task.project_id) || getQueryParam("project");
 
-  if (resolvedOrgId) {
-    const orgPayload = await apiRequest(`/organizations/${encodeURIComponent(resolvedOrgId)}`).catch((error) => {
-      if (isAuthFailure(error)) throw error;
-      return null;
+  if (orgId) {
+    const orgPayload = await apiRequest(`/organizations/${encodeURIComponent(orgId)}`).catch((e) => {
+      if (isAuthFailure(e)) throw e; return null;
     });
     appState.organization = orgPayload
-      ? normalizeOrganizationDetail(orgPayload, resolvedOrgId)
-      : fallbackOrganizationDetail(null, resolvedOrgId);
+      ? normalizeOrganizationDetail(orgPayload, orgId)
+      : fallbackOrganizationDetail(null, orgId);
     appState.membership = findCurrentMembership(appState.organization.members);
   }
 
-  // Montar links de navegação
-  if (resolvedProjectId) {
-    const projectLink = $("#project-nav-link");
-    if (projectLink) {
-      projectLink.href = `./project.html?id=${encodeURIComponent(resolvedProjectId)}${resolvedOrgId ? `&org=${encodeURIComponent(resolvedOrgId)}` : ""}`;
-      projectLink.classList.remove("is-hidden");
+  if (projectId) {
+    const link = $("#project-nav-link");
+    if (link) {
+      link.href = `./project.html?id=${encodeURIComponent(projectId)}${orgId ? `&org=${encodeURIComponent(orgId)}` : ""}`;
+      link.classList.remove("is-hidden");
     }
   }
-
-  if (resolvedOrgId) {
-    const orgLink = $("#org-nav-link");
-    if (orgLink) {
-      orgLink.href = `./organization.html?id=${encodeURIComponent(resolvedOrgId)}`;
-      orgLink.classList.remove("is-hidden");
+  if (orgId) {
+    const link = $("#org-nav-link");
+    if (link) {
+      link.href = `./organization.html?id=${encodeURIComponent(orgId)}`;
+      link.classList.remove("is-hidden");
     }
   }
 
@@ -714,35 +486,28 @@ async function loadTaskPage() {
 function renderTaskPage() {
   const task = appState.task;
   const membership = appState.membership;
-
-  if (!task) {
-    showTaskAccess("Tarefa não encontrada.");
-    return;
-  }
+  if (!task) { showTaskAccess("Tarefa não encontrada."); return; }
 
   $("#task-access-panel")?.classList.add("is-hidden");
   $("#task-content")?.classList.remove("is-hidden");
-
   setText("#task-title", task.name || "Tarefa");
-  setText("#task-subtitle", task.project_name ? `Projeto: ${task.project_name}` : "Tarefa do projeto.");
-  setText("#task-priority-stat", priorityLabel(task.priority));
+  setText("#task-subtitle", task.project_name ? `Projeto: ${task.project_name}` : "");
+  setText("#task-priority-stat", priorityLabel(task.priority) || "—");
   setText("#task-project-stat", task.project_name || shortId(task.project_id));
   setText("#task-completed-stat", isTaskDone(task) ? "Concluída" : "Pendente");
   setText("#task-date-stat", task.created_at ? formatDate(task.created_at) : "—");
   setText("#task-description", task.description || "Sem descrição.");
-  setText("#task-status-chip", priorityLabel(task.priority));
+  setText("#task-status-chip", priorityLabel(task.priority) || "—");
 
   const actionsPanel = $("#task-actions-panel");
   if (membership) {
     actionsPanel?.classList.remove("is-hidden");
-    const completeBtn = $("#complete-task-btn");
-    if (completeBtn) {
-      completeBtn.disabled = isTaskDone(task);
-      completeBtn.textContent = isTaskDone(task) ? "Já concluída" : "Concluir tarefa";
+    const btn = $("#complete-task-btn");
+    if (btn) {
+      btn.disabled = isTaskDone(task);
+      btn.textContent = isTaskDone(task) ? "Já concluída" : "Concluir tarefa";
     }
-    const canDelete = canManageOrganization(membership);
-    const deleteBtn = $("#delete-task-btn");
-    if (deleteBtn) deleteBtn.classList.toggle("is-hidden", !canDelete);
+    $("#delete-task-btn")?.classList.toggle("is-hidden", !canManageOrganization(membership));
   } else {
     actionsPanel?.classList.add("is-hidden");
   }
@@ -753,26 +518,121 @@ function showTaskAccess(message) {
   const panel = $("#task-access-panel");
   if (panel) {
     panel.classList.remove("is-hidden");
-    const title = panel.querySelector("h2");
-    if (title) title.textContent = message;
+    const t = panel.querySelector("h2");
+    if (t) t.textContent = message;
   }
 }
+
+// ── Profile page ──────────────────────────────────────────
+
+async function loadProfilePage() {
+  const username = getQueryParam("u");
+  if (!username) { showProfileAccess("Usuário não informado."); return; }
+
+  // Evitar redirect no próprio perfil
+  if (page === "profile" && username === appState.user?.username) {
+    const profileLink = document.querySelector("[data-current-profile-link]");
+    if (profileLink) profileLink.href = `./profile.html?u=${encodeURIComponent(username)}`;
+  }
+
+  setApiStatus("Sincronizando");
+  const payload = await apiRequest(`/users/${encodeURIComponent(username)}`).catch((e) => {
+    if (isAuthFailure(e)) throw e; return null;
+  });
+
+  if (!payload) { showProfileAccess("Usuário não encontrado."); return; }
+
+  appState.profile = readData(payload);
+  renderProfilePage();
+  setApiStatus("API pronta");
+}
+
+function renderProfilePage() {
+  const profile = appState.profile;
+  if (!profile) return;
+
+  const isSelf = stringify(appState.user?.id) === stringify(profile.id);
+
+  $("#profile-content")?.classList.remove("is-hidden");
+  $("#profile-access-panel")?.classList.add("is-hidden");
+  setText("#profile-username", profile.username || "Usuário");
+  setText("#profile-date", profile.created_at ? `Membro desde ${formatDate(profile.created_at)}` : "");
+
+  const avatarEl = $("#profile-avatar");
+  if (avatarEl) {
+    avatarEl.querySelectorAll("img.avatar-img, .avatar-initials").forEach((el) => el.remove());
+    if (profile.pfp_url) {
+      const img = document.createElement("img");
+      img.src = profile.pfp_url;
+      img.alt = profile.username;
+      img.className = "avatar-img";
+      avatarEl.prepend(img);
+    } else {
+      const span = document.createElement("span");
+      span.className = "avatar-initials";
+      span.textContent = initials(profile.username || "U");
+      avatarEl.prepend(span);
+    }
+  }
+
+  $("#profile-self-panel")?.classList.toggle("is-hidden", !isSelf);
+  if (isSelf) {
+    const input = $("#profile-edit-username");
+    if (input) input.value = profile.username || "";
+  }
+
+  const orgsList = $("#profile-orgs-list");
+  if (orgsList) {
+    clearNode(orgsList);
+    const orgs = Array.isArray(profile.orgs_user_is_member) ? profile.orgs_user_is_member : [];
+    if (!orgs.length) {
+      orgsList.append(emptyMessage("Sem organizações."));
+    } else {
+      orgs.forEach((org) => {
+        const card = document.createElement("article");
+        card.className = "org-profile-card";
+
+        const imgEl = document.createElement("span");
+        imgEl.className = "org-profile-avatar";
+        if (org.image_url) {
+          const img = document.createElement("img");
+          img.src = org.image_url;
+          img.alt = org.name;
+          img.className = "avatar-img";
+          imgEl.append(img);
+        } else {
+          imgEl.textContent = initials(org.name || "O");
+        }
+
+        const name = document.createElement("strong");
+        name.textContent = org.name || "Organização";
+        card.append(imgEl, name);
+        orgsList.append(card);
+      });
+    }
+  }
+}
+
+function showProfileAccess(message) {
+  $("#profile-content")?.classList.add("is-hidden");
+  const panel = $("#profile-access-panel");
+  if (panel) {
+    panel.classList.remove("is-hidden");
+    const t = panel.querySelector("h2");
+    if (t) t.textContent = message;
+  }
+}
+
+// ── Render helpers ────────────────────────────────────────
 
 function renderProjectTasks(container, tasks, options) {
   if (!container) return;
   clearNode(container);
-
-  if (!tasks.length) {
-    container.append(emptyMessage("Sem tarefas neste projeto."));
-    return;
-  }
-
-  tasks.forEach((task) => {
-    container.append(createTaskRow(task, options));
-  });
+  if (!tasks.length) { container.append(emptyMessage("Sem tarefas neste projeto.")); return; }
+  tasks.forEach((task) => container.append(createTaskRow(task, options)));
 }
 
-function createProjectRow(project, { orgId, tasks = [], index = 0 }) {
+function createProjectRow(project, { orgId, index = 0 }) {
   const link = document.createElement("a");
   link.className = "project-row";
   link.href = `./project.html?id=${encodeURIComponent(project.id)}&org=${encodeURIComponent(orgId)}`;
@@ -793,18 +653,14 @@ function createProjectRow(project, { orgId, tasks = [], index = 0 }) {
   progress.className = "progress-track";
   const fill = document.createElement("span");
   fill.className = "progress-fill";
-  const progressValue = getProjectProgress(project, tasks);
-  fill.style.width = `${progressValue}%`;
+  const pct = project.progress != null ? Number(project.progress) : 0;
+  fill.style.width = `${clamp(pct, 0, 100)}%`;
   progress.append(fill);
 
   const percent = document.createElement("strong");
-  percent.textContent = `${formatProgress(progressValue)}%`;
+  percent.textContent = `${formatProgress(pct)}%`;
 
-  const status = document.createElement("span");
-  status.className = "tag";
-  status.textContent = getProjectStatusLabel(project, tasks);
-
-  link.append(icon, title, progress, percent, status);
+  link.append(icon, title, progress, percent);
   return link;
 }
 
@@ -814,11 +670,21 @@ function createMemberLine(member, { canEdit = false } = {}) {
 
   const avatar = document.createElement("span");
   avatar.className = "avatar";
-  avatar.textContent = initials(member.username);
+  if (member.pfp_url) {
+    const img = document.createElement("img");
+    img.src = member.pfp_url;
+    img.alt = member.username;
+    img.className = "avatar-img";
+    avatar.append(img);
+  } else {
+    avatar.textContent = initials(member.username);
+  }
 
   const title = document.createElement("span");
   title.className = "row-title";
-  const name = document.createElement("strong");
+  const name = document.createElement("a");
+  name.className = "member-profile-link";
+  name.href = `./profile.html?u=${encodeURIComponent(member.username)}`;
   name.textContent = member.username || "Usuário";
   const role = document.createElement("span");
   role.textContent = member.role || "member";
@@ -842,7 +708,7 @@ function createMemberLine(member, { canEdit = false } = {}) {
   return row;
 }
 
-function createTaskRow(task, { compact = false, canEdit = false, canDelete = false } = {}) {
+function createTaskRow(task, { compact = false } = {}) {
   const row = document.createElement("article");
   row.className = "task-row";
   row.classList.toggle("done", isTaskDone(task));
@@ -857,40 +723,30 @@ function createTaskRow(task, { compact = false, canEdit = false, canDelete = fal
   title.textContent = task.name;
   main.append(title);
 
-  const project = document.createElement("span");
-  project.className = "tag";
-  project.textContent = task.project_name || "Projeto";
-
   const due = document.createElement("span");
   due.className = "muted";
-  due.textContent = task.due_date ? formatDate(task.due_date) : task.created_at ? `Criada ${formatDate(task.created_at)}` : "Sem prazo";
+  due.textContent = task.created_at ? `Criada ${formatDate(task.created_at)}` : "";
 
   const priority = document.createElement("span");
   priority.className = `tag ${priorityClass(task.priority)}`;
   priority.textContent = priorityLabel(task.priority);
 
-  row.append(check, main, project, due, priority);
+  row.append(check, main, due, priority);
 
   if (!compact && task.id) {
-    const actions = document.createElement("span");
-    actions.className = "task-actions";
-
-    const taskUrl = buildTaskUrl(task);
     const viewBtn = document.createElement("button");
     viewBtn.type = "button";
     viewBtn.className = "ghost-button";
     viewBtn.textContent = "Ver";
-    viewBtn.addEventListener("click", () => { location.href = taskUrl; });
-    actions.append(viewBtn);
-
-    row.append(actions);
+    viewBtn.addEventListener("click", () => { location.href = buildTaskUrl(task); });
+    row.append(viewBtn);
   }
 
   return row;
 }
 
 function buildTaskUrl(task) {
-  const orgId = appState.organization?.id || appState.currentOrgId || getQueryParam("org");
+  const orgId = appState.organization?.id || getQueryParam("org");
   const projectId = task.project_id || getQueryParam("id");
   const params = new URLSearchParams({ id: task.id });
   if (projectId) params.set("project", projectId);
@@ -898,56 +754,37 @@ function buildTaskUrl(task) {
   return `./task.html?${params.toString()}`;
 }
 
-function createActivityItem(label, text) {
-  const item = document.createElement("article");
-  item.className = "activity-item";
-  const dot = document.createElement("span");
-  dot.className = "activity-dot";
-  dot.textContent = label.slice(0, 2).toUpperCase();
-  const copy = document.createElement("span");
-  copy.className = "row-title";
-  const strong = document.createElement("strong");
-  strong.textContent = label;
-  const desc = document.createElement("span");
-  desc.textContent = text;
-  copy.append(strong, desc);
-  item.append(dot, copy);
-  return item;
-}
+// ── Handlers ──────────────────────────────────────────────
 
 async function handleCreateOrganization(event) {
   event.preventDefault();
-  const input = $("#org-name-input");
-  const name = input?.value.trim();
-  if (!name) return;
+  const nameInput = $("#org-name-input");
+  const descInput = $("#org-description-input");
+  const imgInput = $("#org-img-input");
+  const name = nameInput?.value.trim();
+  const description = descInput?.value.trim();
+  if (!name || !description) return;
 
   await runWithStatus(event.submitter, async () => {
-    const payload = await apiRequest("/organizations", {
-      method: "POST",
-      body: { name },
-    });
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("description", description);
+    if (imgInput?.files?.[0]) formData.append("img", imgInput.files[0]);
 
+    const payload = await apiRequest("/organizations", { method: "POST", body: formData });
     const data = readData(payload);
     const orgId = stringify(data.org_id || data.id);
     toast("Organização criada.", "success");
-
-    if (orgId) {
-      appState.currentOrgId = orgId;
-      persistSelectedOrg();
-    }
-
-    input.value = "";
-    if (page === "dashboard") {
-      await loadDashboard();
-    } else if (orgId) {
-      goTo(`organization.html?id=${encodeURIComponent(orgId)}`);
-    }
+    nameInput.value = "";
+    if (descInput) descInput.value = "";
+    if (imgInput) imgInput.value = "";
+    if (orgId) goTo(`organization.html?id=${encodeURIComponent(orgId)}`);
+    else await loadDashboard();
   });
 }
 
 async function handleAcceptInviteById(inviteId, button) {
   if (!inviteId) return;
-
   await runWithStatus(button, async () => {
     await apiRequest(`/invite/${encodeURIComponent(inviteId)}`);
     toast("Convite aceito.", "success");
@@ -973,10 +810,10 @@ function renderInviteResult(container, username, userId) {
   clearNode(container);
 
   if (!userId) {
-    const error = document.createElement("p");
-    error.className = "invite-result-error";
-    error.textContent = "Usuário não encontrado.";
-    container.append(error);
+    const err = document.createElement("p");
+    err.className = "invite-result-error";
+    err.textContent = "Usuário não encontrado.";
+    container.append(err);
     return;
   }
 
@@ -998,7 +835,7 @@ function renderInviteResult(container, username, userId) {
 }
 
 async function handleSendInvite(userId, button) {
-  const orgId = currentOrgIdFromPage();
+  const orgId = getQueryParam("id");
   if (!userId || !orgId) return;
 
   await runWithStatus(button, async () => {
@@ -1006,8 +843,8 @@ async function handleSendInvite(userId, button) {
       method: "POST",
       body: { user_invited_id: userId },
     });
-
-    $("#invite-username-search").value = "";
+    const input = $("#invite-username-search");
+    if (input) input.value = "";
     $("#invite-result")?.classList.add("is-hidden");
     toast("Convite enviado.", "success");
   });
@@ -1016,14 +853,14 @@ async function handleSendInvite(userId, button) {
 function openMemberEditDialog(member) {
   appState.editingMemberId = member.member_id;
   setText("#member-edit-username", member.username);
-  const roleSelect = $("#member-edit-role");
-  if (roleSelect) roleSelect.value = member.role;
+  const sel = $("#member-edit-role");
+  if (sel) sel.value = member.role;
   $("#member-edit-dialog")?.showModal();
 }
 
 function closeMemberEditDialog() {
-  const dialog = $("#member-edit-dialog");
-  if (dialog?.open) dialog.close();
+  const d = $("#member-edit-dialog");
+  if (d?.open) d.close();
   appState.editingMemberId = "";
 }
 
@@ -1048,7 +885,7 @@ async function handleCreateProject(event) {
   event.preventDefault();
   const input = $("#project-name-input");
   const name = input?.value.trim();
-  const orgId = currentOrgIdFromPage();
+  const orgId = getQueryParam("id");
   if (!name || !orgId) return;
 
   await runWithStatus(event.submitter, async () => {
@@ -1056,53 +893,85 @@ async function handleCreateProject(event) {
       method: "POST",
       body: { name },
     });
-
     const data = readData(payload);
     const projectId = stringify(data.id || data.project_id);
     toast("Projeto criado.", "success");
-
-    if (projectId) {
-      goTo(`project.html?id=${encodeURIComponent(projectId)}&org=${encodeURIComponent(orgId)}`);
-    } else {
-      input.value = "";
-      await loadOrganizationPage();
-    }
+    if (projectId) goTo(`project.html?id=${encodeURIComponent(projectId)}&org=${encodeURIComponent(orgId)}`);
+    else { input.value = ""; await loadOrganizationPage(); }
   });
 }
 
 async function handleDeleteOrganization() {
-  const organization = appState.organization;
-  if (!organization?.id) return;
+  const org = appState.organization;
+  if (!org?.id) return;
 
   const confirmed = await confirmAction({
     title: "Excluir organização",
-    message: `Excluir "${organization.name}"?`,
+    message: `Excluir "${org.name}"?`,
     actionText: "Excluir",
   });
-
   if (!confirmed) return;
 
   await runWithStatus($("#delete-org-button"), async () => {
-    await apiRequest(`/organizations/${encodeURIComponent(organization.id)}`, {
-      method: "DELETE",
-    });
+    await apiRequest(`/organizations/${encodeURIComponent(org.id)}`, { method: "DELETE" });
     toast("Organização excluída.", "success");
-    localStorage.removeItem(storageKeys.selectedOrg);
     goTo("dashboard.html");
+  });
+}
+
+async function handleEditOrganization(event) {
+  event.preventDefault();
+  const org = appState.organization;
+  if (!org?.id) return;
+
+  const nameInput = $("#org-edit-name");
+  const descInput = $("#org-edit-description");
+  const imgInput = $("#org-edit-img");
+  const name = nameInput?.value.trim();
+  const description = descInput?.value.trim();
+  const img = imgInput?.files?.[0];
+  if (!name && !description && !img) return;
+
+  await runWithStatus(event.submitter, async () => {
+    const formData = new FormData();
+    if (name) formData.append("name", name);
+    if (description) formData.append("description", description);
+    if (img) formData.append("img", img);
+
+    await apiRequest(`/organizations/${encodeURIComponent(org.id)}`, { method: "PATCH", body: formData });
+    toast("Organização atualizada.", "success");
+    await loadOrganizationPage();
+  });
+}
+
+async function handleRemoveOrgImage() {
+  const org = appState.organization;
+  if (!org?.id) return;
+
+  const confirmed = await confirmAction({
+    title: "Remover imagem",
+    message: "Remover a imagem da organização?",
+    actionText: "Remover",
+  });
+  if (!confirmed) return;
+
+  await runWithStatus($("#remove-org-img-btn"), async () => {
+    await apiRequest(`/organizations/${encodeURIComponent(org.id)}/remove-img`, { method: "DELETE" });
+    toast("Imagem removida.", "success");
+    await loadOrganizationPage();
   });
 }
 
 async function handleCreateTask(event) {
   event.preventDefault();
   const nameInput = $("#task-name-input");
-  const descriptionInput = $("#task-description-input");
+  const descInput = $("#task-description-input");
   const priorityInput = $("#task-priority-input");
   const name = nameInput?.value.trim();
-  const description = descriptionInput?.value.trim();
+  const description = descInput?.value.trim();
   const priority = priorityInput?.value || "normal";
   const projectId = getQueryParam("id");
-
-  if (!name || !description || !priority || !projectId) return;
+  if (!name || !description || !projectId) return;
 
   await runWithStatus(event.submitter, async () => {
     await apiRequest(`/projects/${encodeURIComponent(projectId)}/tasks`, {
@@ -1110,7 +979,7 @@ async function handleCreateTask(event) {
       body: { name, description, priority },
     });
     nameInput.value = "";
-    descriptionInput.value = "";
+    if (descInput) descInput.value = "";
     if (priorityInput) priorityInput.value = "normal";
     toast("Tarefa adicionada.", "success");
     await loadProjectPage();
@@ -1118,17 +987,20 @@ async function handleCreateTask(event) {
 }
 
 function openTaskEditDialog(task) {
-  const dialog = $("#task-edit-dialog");
   appState.editingTaskId = task.id;
-  $("#task-edit-name").value = task.name || "";
-  $("#task-edit-description").value = task.description || "";
-  $("#task-edit-priority").value = task.priority || "normal";
-  dialog?.showModal();
+  const d = $("#task-edit-dialog");
+  const nameEl = $("#task-edit-name");
+  const descEl = $("#task-edit-description");
+  const prioEl = $("#task-edit-priority");
+  if (nameEl) nameEl.value = task.name || "";
+  if (descEl) descEl.value = task.description || "";
+  if (prioEl) prioEl.value = task.priority || "normal";
+  d?.showModal();
 }
 
 function closeTaskEditDialog() {
-  const dialog = $("#task-edit-dialog");
-  if (dialog?.open) dialog.close();
+  const d = $("#task-edit-dialog");
+  if (d?.open) d.close();
   appState.editingTaskId = "";
 }
 
@@ -1138,7 +1010,7 @@ async function handleEditTask(event) {
   const name = $("#task-edit-name")?.value.trim();
   const description = $("#task-edit-description")?.value.trim();
   const priority = $("#task-edit-priority")?.value || "normal";
-  if (!taskId || !name || !description || !priority) return;
+  if (!taskId || !name || !description) return;
 
   await runWithStatus(event.submitter, async () => {
     await apiRequest(`/tasks/${encodeURIComponent(taskId)}`, {
@@ -1147,44 +1019,36 @@ async function handleEditTask(event) {
     });
     closeTaskEditDialog();
     toast("Tarefa atualizada.", "success");
-    if (page === "task") {
-      await loadTaskPage();
-    } else {
-      await loadProjectPage();
-    }
+    if (page === "task") await loadTaskPage();
+    else await loadProjectPage();
   });
 }
 
 async function handleCompleteTask(task, button) {
   if (!task?.id) return;
-
   await runWithStatus(button, async () => {
     await apiRequest(`/tasks/${encodeURIComponent(task.id)}/complete`);
     toast("Tarefa concluída.", "success");
-    if (page === "task") {
-      await loadTaskPage();
-    } else {
-      await loadProjectPage();
-    }
+    if (page === "task") await loadTaskPage();
+    else await loadProjectPage();
   });
 }
 
 async function handleDeleteTask(task) {
   const confirmed = await confirmAction({
     title: "Excluir tarefa",
-    message: `Remover "${task.name}" do projeto?`,
+    message: `Remover "${task.name}"?`,
     actionText: "Excluir",
   });
-
   if (!confirmed) return;
 
   await runWithStatus(null, async () => {
     await apiRequest(`/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
     toast("Tarefa excluída.", "success");
     if (page === "task") {
+      const params = new URLSearchParams();
       const projectId = getQueryParam("project");
       const orgId = getQueryParam("org");
-      const params = new URLSearchParams();
       if (projectId) params.set("id", projectId);
       if (orgId) params.set("org", orgId);
       goTo(`./project.html?${params.toString()}`);
@@ -1194,14 +1058,149 @@ async function handleDeleteTask(task) {
   });
 }
 
+async function handleUploadPfp(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const username = appState.user?.username;
+  if (!username) return;
+
+  const formData = new FormData();
+  formData.append("img", file);
+
+  await runWithStatus(null, async () => {
+    const payload = await apiRequest(`/users/${encodeURIComponent(username)}`, {
+      method: "PATCH",
+      body: formData,
+    });
+    const data = readData(payload);
+    appState.user = { ...appState.user, pfp_url: data.pfp_url || "" };
+    localStorage.setItem(storageKeys.user, JSON.stringify(appState.user));
+    renderCurrentUserAvatar();
+    toast("Foto atualizada.", "success");
+  });
+}
+
+async function handleRemovePfp() {
+  const confirmed = await confirmAction({
+    title: "Remover foto",
+    message: "Remover sua foto de perfil?",
+    actionText: "Remover",
+  });
+  if (!confirmed) return;
+
+  await runWithStatus($("#remove-pfp-btn"), async () => {
+    await apiRequest("/users/remove-pfp", { method: "DELETE" });
+    appState.user = { ...appState.user, pfp_url: "" };
+    localStorage.setItem(storageKeys.user, JSON.stringify(appState.user));
+    renderCurrentUserAvatar();
+    toast("Foto removida.", "success");
+  });
+}
+
+async function handleEditProfile(event) {
+  event.preventDefault();
+  const username = getQueryParam("u");
+  const newUsername = $("#profile-edit-username")?.value.trim();
+  const imgInput = $("#profile-pfp-input") || $("#pfp-upload-input");
+  const img = imgInput?.files?.[0];
+  if (!newUsername && !img) return;
+
+  await runWithStatus(event.submitter, async () => {
+    const formData = new FormData();
+    if (newUsername) formData.append("username", newUsername);
+    if (img) formData.append("img", img);
+
+    const payload = await apiRequest(`/users/${encodeURIComponent(username)}`, {
+      method: "PATCH",
+      body: formData,
+    });
+    const data = readData(payload);
+    appState.user = { ...appState.user, username: data.username, pfp_url: data.pfp_url || "" };
+    appState.profile = { ...appState.profile, username: data.username, pfp_url: data.pfp_url || "" };
+    localStorage.setItem(storageKeys.user, JSON.stringify(appState.user));
+    renderSessionLabels();
+    renderProfilePage();
+    toast("Perfil atualizado.", "success");
+
+    if (newUsername && newUsername !== username) {
+      const url = new URL(location.href);
+      url.searchParams.set("u", newUsername);
+      history.replaceState(null, "", url.toString());
+    }
+  });
+}
+
+// ── Avatar / session ──────────────────────────────────────
+
+function renderCurrentUserAvatar() {
+  const user = appState.user;
+  document.querySelectorAll("[data-current-avatar]").forEach((el) => {
+    el.querySelectorAll("img.avatar-img").forEach((img) => img.remove());
+    if (user?.pfp_url) {
+      const img = document.createElement("img");
+      img.src = user.pfp_url;
+      img.alt = user.username || "";
+      img.className = "avatar-img";
+      el.prepend(img);
+      el.querySelectorAll(".avatar-initials").forEach((s) => s.remove());
+    } else {
+      if (!el.querySelector(".avatar-initials")) {
+        const span = document.createElement("span");
+        span.className = "avatar-initials";
+        span.textContent = initials(user?.username || "U");
+        el.prepend(span);
+      }
+    }
+  });
+}
+
+function initPfpUpload() {
+  document.querySelectorAll("[data-current-avatar]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const input = el.closest(".avatar-upload-wrap")?.querySelector("input[type=file]");
+      input?.click();
+    });
+  });
+  document.querySelectorAll("#pfp-upload-input").forEach((input) => {
+    input.addEventListener("change", handleUploadPfp);
+  });
+}
+
+function renderSessionLabels() {
+  const username = appState.user?.username || "Usuário";
+  document.querySelectorAll("[data-current-user]").forEach((node) => {
+    node.textContent = username;
+  });
+  document.querySelectorAll("[data-current-profile-link]").forEach((node) => {
+    node.href = `./profile.html?u=${encodeURIComponent(username)}`;
+  });
+  renderCurrentUserAvatar();
+}
+
+// ── API ───────────────────────────────────────────────────
+
+function bindCommonControls() {
+  const apiBaseInput = $("#api-base-input");
+  if (apiBaseInput) apiBaseInput.value = getApiBase();
+
+  $("#save-api-base")?.addEventListener("click", () => {
+    const next = normalizeApiBase(apiBaseInput?.value);
+    localStorage.setItem(storageKeys.apiBase, next);
+    if (apiBaseInput) apiBaseInput.value = next;
+    toast("Conexão salva.", "success");
+  });
+
+  document.querySelectorAll("[data-logout]").forEach((btn) => btn.addEventListener("click", logout));
+}
+
 async function apiRequest(path, options = {}) {
   const url = `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
   const headers = new Headers(options.headers || {});
+  const isFormData = options.body instanceof FormData;
 
-  if (options.body !== undefined) {
+  if (options.body !== undefined && !isFormData) {
     headers.set("Content-Type", "application/json");
   }
-
   if (!options.skipAuth && appState.token) {
     headers.set("Authorization", `Bearer ${appState.token}`);
   }
@@ -1209,7 +1208,7 @@ async function apiRequest(path, options = {}) {
   const response = await fetch(url, {
     method: options.method || "GET",
     headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: isFormData ? options.body : options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
   const payload = await parseResponse(response);
@@ -1218,7 +1217,6 @@ async function apiRequest(path, options = {}) {
     const error = new Error(extractErrorMessage(payload, response.status));
     error.status = response.status;
     error.payload = payload;
-    error.code = payload?.error?.code || payload?.msg || "";
     throw error;
   }
 
@@ -1228,32 +1226,18 @@ async function apiRequest(path, options = {}) {
 async function parseResponse(response) {
   const text = await response.text();
   if (!text) return {};
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { message: text };
-  }
+  try { return JSON.parse(text); } catch { return { message: text }; }
 }
 
 function extractErrorMessage(payload, status) {
-  const apiError = payload?.error;
-  return apiError?.message
-    || apiError?.messsage
+  return payload?.error?.message
+    || payload?.error?.messsage
     || payload?.msg
     || payload?.message
     || `Requisição falhou com status ${status}.`;
 }
 
-function normalizeOrganizationsPayload(payload) {
-  const data = readData(payload);
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(data.organizations)) return data.organizations;
-  if (Array.isArray(data.orgs_user_is_member)) return data.orgs_user_is_member;
-  if (Array.isArray(data.items)) return data.items;
-  return [];
-}
+// ── Normalizers ───────────────────────────────────────────
 
 function normalizeList(payload) {
   const data = readData(payload);
@@ -1267,6 +1251,8 @@ function normalizeOrganization(raw) {
   return {
     id: stringify(raw.id || raw.org_id),
     name: stringify(raw.name || raw.org_name || "Organização"),
+    description: stringify(raw.description || ""),
+    image_url: stringify(raw.image_url || ""),
   };
 }
 
@@ -1275,6 +1261,8 @@ function normalizeOrganizationDetail(payload, fallbackId) {
   return {
     id: stringify(data.id || data.org_id || fallbackId),
     name: stringify(data.name || data.org_name || "Organização"),
+    description: stringify(data.description || ""),
+    image_url: stringify(data.image_url || ""),
     members: Array.isArray(data.members) ? data.members.map(normalizeMember) : [],
     projects: Array.isArray(data.projects) ? data.projects.map(normalizeProject) : [],
     created_at: stringify(data.created_at || ""),
@@ -1285,6 +1273,8 @@ function fallbackOrganizationDetail(summary, fallbackId) {
   return {
     id: stringify(summary?.id || fallbackId),
     name: stringify(summary?.name || "Organização"),
+    description: stringify(summary?.description || ""),
+    image_url: stringify(summary?.image_url || ""),
     members: [],
     projects: [],
     created_at: stringify(summary?.created_at || ""),
@@ -1297,8 +1287,8 @@ function normalizeMember(raw) {
     user_id: stringify(raw.user_id || raw.id),
     username: stringify(raw.username || "Usuário"),
     role: stringify(raw.role || "member"),
+    pfp_url: stringify(raw.pfp_url || ""),
     created_at: stringify(raw.created_at || ""),
-    avatar_url: stringify(raw.avatar_url || ""),
   };
 }
 
@@ -1307,7 +1297,6 @@ function normalizeProject(raw) {
     id: stringify(raw.id || raw.project_id),
     name: stringify(raw.name || "Projeto"),
     org_id: stringify(raw.org_id),
-    status: stringify(raw.status || ""),
     progress: raw.progress,
     description: stringify(raw.description || ""),
     created_at: stringify(raw.created_at || ""),
@@ -1320,7 +1309,6 @@ function normalizeProjectDetail(payload, fallbackId) {
     id: stringify(data.id || data.project_id || fallbackId),
     name: stringify(data.name || "Projeto"),
     org_id: stringify(data.org_id),
-    status: stringify(data.status || ""),
     progress: data.progress,
     description: stringify(data.description || ""),
     created_at: stringify(data.created_at || ""),
@@ -1332,14 +1320,11 @@ function normalizeTask(raw, project = {}) {
     id: stringify(raw.id || raw.task_id),
     name: stringify(raw.name || "Tarefa"),
     description: stringify(raw.description || ""),
-    status: stringify(raw.status || ""),
     priority: stringify(raw.priority || ""),
-    due_date: stringify(raw.due_date || ""),
     created_at: stringify(raw.created_at || ""),
     is_completed: Boolean(raw.is_completed),
-    assignee_id: stringify(raw.assignee_id || ""),
     project_id: stringify(raw.project_id || project.id),
-    project_name: stringify(raw.project_name || project.name || "Projeto"),
+    project_name: stringify(raw.project_name || project.name || ""),
   };
 }
 
@@ -1359,30 +1344,15 @@ function readData(payload) {
   return payload?.data || payload || {};
 }
 
-function chooseCurrentOrganization() {
-  const queryOrg = getQueryParam("org");
-  const savedOrg = appState.currentOrgId;
-  const ids = appState.organizations.map((org) => org.id);
-  appState.currentOrgId = ids.includes(queryOrg)
-    ? queryOrg
-    : ids.includes(savedOrg)
-      ? savedOrg
-      : ids[0] || "";
-  persistSelectedOrg();
-}
-
-function currentOrgIdFromPage() {
-  return getQueryParam("id") || getQueryParam("org") || appState.currentOrgId;
-}
+// ── Utilities ─────────────────────────────────────────────
 
 function findCurrentMembership(members) {
   const userId = stringify(appState.user?.id).toLowerCase();
   const username = stringify(appState.user?.username).toLowerCase();
-
-  return members.find((member) => {
-    const memberId = stringify(member.user_id).toLowerCase();
-    const memberName = stringify(member.username).toLowerCase();
-    return (userId && memberId === userId) || (username && memberName === username);
+  return members.find((m) => {
+    const mid = stringify(m.user_id).toLowerCase();
+    const mname = stringify(m.username).toLowerCase();
+    return (userId && mid === userId) || (username && mname === username);
   });
 }
 
@@ -1395,109 +1365,51 @@ function isOwner(member) {
 }
 
 function isTaskDone(task) {
-  if (task?.is_completed === true) return true;
-  const status = stringify(task.status).toLowerCase();
-  return status === "done" || status === "completed" || status === "concluida" || status === "concluída";
-}
-
-function getProjectProgress(project, tasks) {
-  if (project.progress !== undefined && project.progress !== null && project.progress !== "") {
-    const value = Number(project.progress);
-    return Number.isFinite(value) ? clamp(value, 0, 100) : 0;
-  }
-
-  if (tasks.length > 0 && (tasks.some((task) => task.status) || tasks.some((task) => task.is_completed))) {
-    const done = tasks.filter(isTaskDone).length;
-    return Math.round((done / tasks.length) * 1000) / 10;
-  }
-
-  return 0;
-}
-
-function getProjectStatusLabel(project, tasks) {
-  const status = stringify(project.status).toLowerCase();
-  if (status === "planning") return "Planejamento";
-  if (status === "done" || status === "completed") return "Concluído";
-  if (status === "in_progress") return "Em andamento";
-  const progress = getProjectProgress(project, tasks);
-  if (progress >= 100) return "Concluído";
-  if (progress > 0) return "Em andamento";
-  if (tasks.length === 0) return "Sem tarefas";
-  return "Em andamento";
+  return Boolean(task?.is_completed);
 }
 
 function priorityLabel(priority) {
-  const value = stringify(priority).toLowerCase();
-  if (value === "very high") return "Muito alta";
-  if (value === "high") return "Alta";
-  if (value === "low") return "Baixa";
-  if (value === "normal") return "Normal";
+  const v = stringify(priority).toLowerCase();
+  if (v === "very high") return "Muito alta";
+  if (v === "high") return "Alta";
+  if (v === "low") return "Baixa";
+  if (v === "normal") return "Normal";
   return "";
 }
 
 function priorityClass(priority) {
-  const value = stringify(priority).toLowerCase();
-  if (value === "very high") return "high";
-  if (value === "high") return "high";
-  if (value === "low") return "low";
-  if (value === "normal") return "medium";
+  const v = stringify(priority).toLowerCase();
+  if (v === "very high" || v === "high") return "high";
+  if (v === "low") return "low";
+  if (v === "normal") return "medium";
   return "";
 }
 
 function formatProgress(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return "0";
-  return Number.isInteger(number) ? String(number) : number.toFixed(1);
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "0";
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
 function formatDate(value) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-  }).format(date);
-}
-
-function filterProjects(projects, query) {
-  if (!query) return projects;
-  return projects.filter((project) => project.name.toLowerCase().includes(query));
-}
-
-function filterMembers(members, query) {
-  if (!query) return members;
-  return members.filter((member) => member.username.toLowerCase().includes(query) || member.role.toLowerCase().includes(query));
-}
-
-function filterTasks(tasks, query) {
-  if (!query) return tasks;
-  return tasks.filter((task) => {
-    return task.name.toLowerCase().includes(query)
-      || task.description.toLowerCase().includes(query)
-      || task.project_name.toLowerCase().includes(query);
-  });
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(date);
 }
 
 async function runWithStatus(button, task) {
   const control = button instanceof HTMLElement ? button : null;
   const originalText = control?.textContent;
-  const canSwapText = control?.tagName === "BUTTON" && !control.classList.contains("nav-button");
-
+  const canSwap = control?.tagName === "BUTTON" && !control.classList.contains("nav-button");
   try {
-    if (control) {
-      control.disabled = true;
-      if (originalText && canSwapText) control.textContent = "Aguarde";
-    }
+    if (control) { control.disabled = true; if (canSwap) control.textContent = "Aguarde"; }
     return await task();
   } catch (error) {
     handleError(error);
     return false;
   } finally {
-    if (control) {
-      control.disabled = false;
-      if (originalText && canSwapText) control.textContent = originalText;
-    }
+    if (control) { control.disabled = false; if (originalText && canSwap) control.textContent = originalText; }
   }
 }
 
@@ -1508,7 +1420,6 @@ function handleError(error) {
     goTo("login.html");
     return;
   }
-
   toast(error?.message || "Algo deu errado.", "error");
   setApiStatus(error?.status ? `Erro ${error.status}` : "Erro");
 }
@@ -1516,37 +1427,25 @@ function handleError(error) {
 function isAuthFailure(error) {
   if (error?.status !== 401) return false;
   if (error?.payload?.msg) return true;
-
-  const message = stringify(error?.message).toLowerCase();
-  return message.includes("token")
-    || message.includes("jwt")
-    || message.includes("authorization")
-    || message.includes("signature")
-    || message.includes("expired");
+  const msg = stringify(error?.message).toLowerCase();
+  return msg.includes("token") || msg.includes("jwt") || msg.includes("expired");
 }
 
 function saveSession(data, fallbackUsername) {
   const token = data.access_token || "";
   const user = data.user || { username: fallbackUsername };
-
-  if (!token) {
-    throw new Error("Token de acesso não veio na resposta.");
-  }
-
+  if (!token) throw new Error("Token de acesso não veio na resposta.");
   appState.token = token;
   appState.user = {
     id: stringify(user.id),
     username: stringify(user.username || fallbackUsername),
+    pfp_url: stringify(user.pfp_url || ""),
   };
-
   localStorage.setItem(storageKeys.token, appState.token);
   localStorage.setItem(storageKeys.user, JSON.stringify(appState.user));
 }
 
-function logout() {
-  clearSession();
-  goTo("login.html");
-}
+function logout() { clearSession(); goTo("login.html"); }
 
 function clearSession() {
   appState.token = "";
@@ -1561,44 +1460,22 @@ function requireAuth() {
   return false;
 }
 
-function renderSessionLabels() {
-  document.querySelectorAll("[data-current-user]").forEach((node) => {
-    node.textContent = appState.user?.username || "Usuário";
-  });
-  document.querySelectorAll("[data-current-avatar]").forEach((node) => {
-    node.textContent = initials(appState.user?.username || "U");
-  });
-}
-
 function getApiBase() {
   return normalizeApiBase(localStorage.getItem(storageKeys.apiBase) || defaultApiBase);
 }
 
 function normalizeApiBase(value) {
-  const base = (value || defaultApiBase).trim();
-  return base.replace(/\/+$/, "");
-}
-
-function persistSelectedOrg() {
-  if (appState.currentOrgId) {
-    localStorage.setItem(storageKeys.selectedOrg, appState.currentOrgId);
-  } else {
-    localStorage.removeItem(storageKeys.selectedOrg);
-  }
+  return (value || defaultApiBase).trim().replace(/\/+$/, "");
 }
 
 function setApiStatus(text) {
-  document.querySelectorAll("#api-status").forEach((node) => {
-    node.textContent = text;
-  });
+  document.querySelectorAll("#api-status").forEach((n) => { n.textContent = text; });
 }
 
 function setFormEnabled(selector, enabled) {
   const form = $(selector);
   if (!form) return;
-  form.querySelectorAll("input, textarea, button").forEach((control) => {
-    control.disabled = !enabled;
-  });
+  form.querySelectorAll("input, textarea, button, select").forEach((c) => { c.disabled = !enabled; });
   form.classList.toggle("is-disabled", !enabled);
 }
 
@@ -1613,81 +1490,63 @@ function setHref(selector, href) {
 }
 
 function clearNode(node) {
-  while (node?.firstChild) {
-    node.removeChild(node.firstChild);
-  }
+  while (node?.firstChild) node.removeChild(node.firstChild);
 }
 
 function emptyMessage(message) {
-  const paragraph = document.createElement("p");
-  paragraph.className = "empty-copy";
-  paragraph.textContent = message;
-  return paragraph;
+  const p = document.createElement("p");
+  p.className = "empty-copy";
+  p.textContent = message;
+  return p;
 }
 
 async function confirmAction({ title, message, actionText }) {
   const dialog = $("#confirm-dialog");
-  if (!dialog?.showModal) {
-    return window.confirm(message);
-  }
-
+  if (!dialog?.showModal) return window.confirm(message);
   setText("#confirm-title", title);
   setText("#confirm-message", message);
   setText("#confirm-action", actionText || "Confirmar");
   dialog.showModal();
-
   return new Promise((resolve) => {
-    const onClose = () => {
-      dialog.removeEventListener("close", onClose);
-      resolve(dialog.returnValue === "confirm");
-    };
+    const onClose = () => { dialog.removeEventListener("close", onClose); resolve(dialog.returnValue === "confirm"); };
     dialog.addEventListener("close", onClose);
   });
 }
 
 async function copyText(text, successMessage) {
   if (!text) return;
-
   try {
     await navigator.clipboard.writeText(text);
-    toast(successMessage, "success");
   } catch {
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.append(textarea);
-    textarea.select();
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;opacity:0";
+    document.body.append(ta);
+    ta.select();
     document.execCommand("copy");
-    textarea.remove();
-    toast(successMessage, "success");
+    ta.remove();
   }
+  toast(successMessage, "success");
 }
 
 function toast(message, type = "info") {
   const region = $("#toast-region");
   if (!region) return;
-
   const item = document.createElement("div");
   item.className = `toast ${type}`;
   item.textContent = message;
   region.append(item);
-
   window.setTimeout(() => {
     item.style.opacity = "0";
     item.style.transform = "translateY(-6px)";
     item.style.transition = "opacity 180ms ease, transform 180ms ease";
   }, 3400);
-
   window.setTimeout(() => item.remove(), 3700);
 }
 
 function goTo(path, replace = false) {
-  if (replace) {
-    window.location.replace(path);
-    return;
-  }
+  if (replace) { window.location.replace(path); return; }
   window.location.href = path;
 }
 
@@ -1708,23 +1567,15 @@ function shortId(value) {
 
 function initials(value) {
   const parts = stringify(value).trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "U";
+  if (!parts.length) return "U";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
 
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
+function clamp(value, min, max) { return Math.min(Math.max(value, min), max); }
 
 function readJson(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || "null");
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(localStorage.getItem(key) || "null"); } catch { return null; }
 }
 
-function $(selector) {
-  return document.querySelector(selector);
-}
+function $(selector) { return document.querySelector(selector); }

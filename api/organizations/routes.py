@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from .services import organizations_service, create_organization_service, organization_service, remove_organization_service, invite_service, accept_invite_service, members_service, member_service, edit_member_service
+from .services import organizations_service, create_organization_service, organization_service, remove_organization_service, invite_service, accept_invite_service, members_service, member_service, edit_member_service, edit_org_service, remove_img_service
 import uuid
 
 org_bp = Blueprint("organizations", __name__)
@@ -17,22 +17,36 @@ def organizations():
 @jwt_required()
 def create_organization():
     owner_id = get_jwt_identity()
-    data = request.get_json()
+    data = request.form.copy()
+    data["img"] = request.files.get("img")
+
     response = create_organization_service(data, owner_id)
     return response
 
-@org_bp.route("/organizations/<org_id>", methods=["GET"])
+@org_bp.route("/organizations/<org_id>")
 @jwt_required()
 def organization(org_id):
     org_id = uuid.UUID(org_id)
     response = organization_service(org_id)
     return response
 
+@org_bp.route("/organizations/<org_id>", methods=["PATCH"])
+@jwt_required()
+def edit_org(org_id):
+    org_id = uuid.UUID(org_id)
+    user_id = uuid.UUID(get_jwt_identity())
+    data = request.form.copy()
+    data["img"] = request.files.get("img")
+    response = edit_org_service(data, org_id, user_id)
+    return response
+
+
 @org_bp.route("/organizations/<org_id>", methods=["DELETE"])
 @jwt_required()
 def remove_organization(org_id):
     org_id = uuid.UUID(org_id)
-    response = remove_organization_service(org_id)
+    user_id = uuid.UUID(get_jwt_identity())
+    response = remove_organization_service(org_id, user_id)
     return response
 
 @org_bp.route("/organizations/<org_id>/members")
@@ -75,4 +89,12 @@ def accept_invite(invite_id):
     invite_id = uuid.UUID(invite_id)
     user_id = uuid.UUID(get_jwt_identity())
     response = accept_invite_service(invite_id, user_id)
+    return response
+
+@org_bp.route("/organizations/<org_id>/remove-img", methods=["DELETE"])
+@jwt_required()
+def remove_img(org_id):
+    org_id = uuid.UUID(org_id)
+    user_id = uuid.UUID(get_jwt_identity())
+    response = remove_img_service(org_id, user_id)
     return response

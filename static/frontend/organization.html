@@ -16,21 +16,9 @@
           <strong>TaskForge</strong>
         </div>
         <nav class="page-nav" aria-label="Navegação principal">
-          <a id="overview-nav-link" class="nav-link" href="./dashboard.html"><span class="nav-icon">V</span>Visão geral</a>
-          <a class="nav-link active" href="#members-list"><span class="nav-icon">M</span>Membros</a>
-          <a class="nav-link" href="#project-list"><span class="nav-icon">P</span>Projetos</a>
+          <a class="nav-link" href="./dashboard.html"><span class="nav-icon">V</span>Visão geral</a>
+          <a class="nav-link active" href="#"><span class="nav-icon">O</span>Organização</a>
         </nav>
-
-        <div id="invite-section" class="compact-form sidebar-form">
-          <label>
-            Convidar usuário
-            <div class="inline-form">
-              <input id="invite-username-search" type="text" placeholder="Username" autocomplete="off">
-              <button id="invite-search-btn" class="ghost-button" type="button">Buscar</button>
-            </div>
-          </label>
-          <div id="invite-result" class="is-hidden invite-result-card"></div>
-        </div>
 
         <form id="project-form" class="compact-form sidebar-form">
           <label>
@@ -40,10 +28,34 @@
           <button class="primary-button" type="submit">Criar projeto</button>
         </form>
 
+        <form id="org-edit-form" class="compact-form sidebar-form is-hidden">
+          <label>
+            Editar organização
+            <input id="org-edit-name" type="text" minlength="3" maxlength="30" placeholder="Novo nome">
+          </label>
+          <label>
+            Descrição
+            <input id="org-edit-description" type="text" minlength="3" maxlength="120" placeholder="Nova descrição">
+          </label>
+          <label>
+            Imagem
+            <input id="org-edit-img" type="file" accept="image/jpeg,image/png">
+          </label>
+          <div class="inline-form">
+            <button class="primary-button" type="submit">Salvar</button>
+            <button id="remove-org-img-btn" class="ghost-button" type="button">Remover imagem</button>
+          </div>
+        </form>
+
         <div class="sidebar-user">
-          <div class="avatar" data-current-avatar>U</div>
+          <div class="avatar-upload-wrap">
+            <span class="avatar avatar-upload" data-current-avatar>
+              <span class="avatar-upload-hint">✎</span>
+            </span>
+            <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
+          </div>
           <div>
-            <strong data-current-user>Usuário</strong>
+            <a class="profile-link" data-current-user data-current-profile-link href="#">Usuário</a>
             <span>Conta ativa</span>
           </div>
           <button data-logout class="icon-menu" type="button" aria-label="Sair">Sair</button>
@@ -52,14 +64,18 @@
 
       <main class="workspace">
         <header class="topbar">
-          <div>
-            <p class="eyebrow">Organização</p>
-            <h1 id="org-title">Carregando</h1>
-            <p id="org-subtitle" class="muted">Membros, projetos e permissões desta organização.</p>
+          <div class="topbar-org-heading">
+            <img id="org-header-img" class="org-header-img is-hidden" alt="Imagem da organização">
+            <div>
+              <p class="eyebrow">Organização</p>
+              <h1 id="org-title">Carregando</h1>
+              <p id="org-subtitle" class="muted"></p>
+            </div>
           </div>
           <div class="topbar-actions">
             <span id="role-chip" class="status-chip subdued">Membro</span>
             <span id="api-status" class="status-chip">API pronta</span>
+            <button id="edit-org-button" class="ghost-button is-hidden" type="button">Editar</button>
             <button id="delete-org-button" class="danger-button is-hidden" type="button">Excluir</button>
           </div>
         </header>
@@ -106,6 +122,18 @@
               </div>
               <div id="project-list" class="project-rows"></div>
             </section>
+
+            <section id="invite-section" class="panel" aria-labelledby="invite-title">
+              <div class="panel-heading">
+                <p class="eyebrow">Equipe</p>
+                <h2 id="invite-title">Convidar usuário</h2>
+              </div>
+              <div class="inline-form">
+                <input id="invite-username-search" type="text" placeholder="Username" autocomplete="off">
+                <button id="invite-search-btn" class="ghost-button" type="button">Buscar</button>
+              </div>
+              <div id="invite-result" class="is-hidden invite-result-card"></div>
+            </section>
           </div>
         </section>
       </main>
@@ -141,6 +169,7 @@
         </div>
       </form>
     </dialog>
+
     <script src="./js/app.js" defer></script>
   </body>
 </html>

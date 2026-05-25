@@ -3,34 +3,56 @@ import uuid
 from models.member import Member
 from models.user import User
 from extensions import db
-from ..utils.org_utils import verify_org_member
+from ..utils.org_utils import verify_org_member, get_org_by_id
 from ..utils.responses import error, success
 from models.invite import Invite
+from ..utils.image_utils import save_img_upload
+from models.image import Image
+from flask import request
+import os
 
 def organizations_service(user_id):
     members = Member.query.filter_by(user_id=user_id).all()
-    organizations_json = []
-    for i in members:
-        organization = {
-            "id": i.org.id,
-            "name": i.org.name
-        }
-        organizations_json.append(organization)
+    if members:
+        organizations_json = []
+        for i in members:
+            organization = {
+                "id": i.org.id,
+                "name": i.org.name,
+                "description": i.org.description,
+                "image_url": request.host_url+i.org.image.img_path if i.org.image else None,
+            }
+            organizations_json.append(organization)
+    else:
+        organizations_json = []
     return success(data=organizations_json)
 
 def create_organization_service(data, owner_id):
     name = data.get("name")
-    if not name:
-        return error(code="INVALID_DATA", message="name is required.")
+    description = data.get("description")
+    if not (name and description):
+        return error(code="INVALID_DATA", message="name and description are required.")
     if not 3 <= len(name) <=30:
         return error("INVALID_DATA", "name out of limit (3-30).")
+    if not 3 <= len(description) <= 120:
+        return error("INVALID_DATA", "description out of limit (3-120).")
+
 
     user = db.session.get(User, uuid.UUID(owner_id))
     exists = Organization.query.filter_by(name=name).first()
     if exists is not None:
         return error(code="CONFLICT", message="org already exists.", status=409)
 
-    org = Organization(name=name)
+    img = data.get("img")
+    if img:
+        response = save_img_upload(img, ["JPEG", "PNG"])
+        if response[0] == "error":
+            return response[1]
+        img_path = response[1]
+        image = Image(img_path=img_path)
+        db.session.flush()
+
+    org = Organization(name=name, description=description, image=image)
     db.session.add(org)
     db.session.flush()
     owner = Member(user=user, org=org, role="owner")
@@ -40,6 +62,8 @@ def create_organization_service(data, owner_id):
         data= {
             "org_id": org.id,
             "org_name": org.name,
+            "description": org.description,
+            "image_url":request.host_url+org.image.img_path if org.image else None,
             "created_at": org.created_at,
             "owner_id": owner.user_id
         }, status=201
@@ -55,6 +79,7 @@ def organization_service(org_id):
         member = {
             "user_id": str(i.user_id),
             "username": i.user.username,
+            "pfp_url": request.host_url+i.user.image.img_path if i.user.image else None,
             "role": i.role
         }
         members_json.append(member)
@@ -70,8 +95,10 @@ def organization_service(org_id):
 
     return success(
         data={
-            "name": org.name,
             "id": org.id,
+            "name": org.name,
+            "description": org.description,
+            "image_url": request.host_url+org.image.img_path if org.image else None,
             "created_at": org.created_at,
             "members": members_json,
             "projects": projects
@@ -94,6 +121,12 @@ def remove_organization_service(org_id, user_id):
     org = db.session.get(Organization, org_id)
     if org is None:
         return error(code="NOT_FOUND", message="org not found.", status=404)
+    
+    for i in org.members:
+        db.session.delete(i)
+    if os.path.exists(org.image.img_path):
+        os.remove(org.image.img_path)
+    db.session.delete(org.image)
     db.session.delete(org)
     db.session.commit()
     return success(message="org deleted.")
@@ -165,6 +198,7 @@ def members_service(org_id, user_id):
         member = {
             "member_id": i.id,
             "username": i.user.username,
+            "pfp_url": request.host_url+i.user.image.img_path if i.user.image else None,
             "user_id": i.user_id,
             "role": i.role,
             "created_at": i.created_at
@@ -180,9 +214,11 @@ def member_service(member_id):
     return success(data={
         "user_id":member.user_id,
         "username": member.user.username,
+        "pfp_url": request.host_url+member.user.image.img_path if member.user.image else None,
         "role": member.role,
         "joined_at": member.created_at,
         "org_id": member.org_id,
+        "org_image_url": request.host_url+member.org.image.img_path if member.org.image else None,
         "org_name": member.org.name
     })
 
@@ -225,3 +261,81 @@ def edit_member_service(data, member_id, user_id):
         "org_id": member.org_id,
         "org_name": member.org.name
     })
+
+def edit_org_service(data, org_id, user_id):
+    org = get_org_by_id(org_id)
+    if org is None:
+        return error(code="NOT_FOUND", message="org not found.", status=404)
+    
+    member = verify_org_member(org_id, user_id)
+    if not member:
+        return error(
+            code="ACCESS_DENIED",
+            message="user doesnt have access to this org.",
+            status=403)
+    
+    if member.role not in ["owner", "admin"]:
+        return error(code="INSUFFICIENT_PERMISSION",
+                    message="user needs to be owner or admin.",
+                    status=403)
+
+    img = data.get("img")
+    name = data.get("name")
+    description = data.get("description")
+    if not (img or name or description):
+        return error("INVALID_DATA", message="img, name or description are required.")
+    
+    if img:
+        response = save_img_upload(img, ["JPEG", "PNG"])
+        if response[0] == "error":
+            return response[1]
+        
+        img_path = response[1]
+        image = Image(img_path=img_path)
+        db.session.add(image)
+        db.session.flush()
+        org.image = image
+
+    if name:
+        org.name = name
+
+    if description:
+        org.description = description
+    
+    db.session.commit()
+    return success(data={
+        "id": org.id,
+        "name": org.name,
+        "description": org.description,
+        "image_url": request.host_url+org.image.img_path if org.image else None,
+        "created_at": org.created_at
+    })
+
+def remove_img_service(org_id, user_id):
+    org = db.session.get(Organization, org_id)
+    if not org:
+        return error(code="NOT_FOUND", message="org not found.", status=404)
+
+    if not org.image:
+        return error(code="NOT_FOUND", message="img not found.", status=404)
+
+    member = verify_org_member(org_id, user_id)
+    if not member:
+        return error(
+            code="ACCESS_DENIED",
+            message="user doesnt have access to this org.",
+            status=403)
+    
+    if member.role not in ["owner", "admin"]:
+        return error(code="INSUFFICIENT_PERMISSION",
+                    message="user needs to be owner or admin.",
+                    status=403)
+    
+    if os.path.exists(org.image.img_path):
+        os.remove(org.image.img_path)
+
+    org.img_id = None
+    db.session.delete(org.image)
+    db.session.commit()
+    
+    return success(message="done.")

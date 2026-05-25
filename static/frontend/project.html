@@ -25,11 +25,15 @@
           <label>
             Nova tarefa
             <input id="task-name-input" type="text" minlength="3" maxlength="30" placeholder="Nome da tarefa">
-          </label>
+          </span>
+            <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
+          </div>
           <label>
             Descrição
             <textarea id="task-description-input" minlength="3" maxlength="120" rows="4" placeholder="Contexto da tarefa"></textarea>
-          </label>
+          </span>
+            <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
+          </div>
           <label>
             Prioridade
             <select id="task-priority-input" required>
@@ -38,14 +42,16 @@
               <option value="high">Alta</option>
               <option value="very high">Muito alta</option>
             </select>
-          </label>
+          </span>
+            <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
+          </div>
           <button class="primary-button" type="submit">Adicionar tarefa</button>
         </form>
 
         <div class="sidebar-user">
           <div class="avatar" data-current-avatar>U</div>
           <div>
-            <strong data-current-user>Usuário</strong>
+            <a class="profile-link" data-current-user data-current-profile-link href="#">Usuário</a>
             <span>Conta ativa</span>
           </div>
           <button data-logout class="icon-menu" type="button" aria-label="Sair">Sair</button>

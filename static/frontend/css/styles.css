@@ -1006,3 +1006,176 @@ label {
   width: 100%;
   justify-content: center;
 }
+
+/* ── Avatar upload ───────────────────────────────────────── */
+.avatar-upload {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.avatar-upload:hover::after {
+  content: "✎";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.55);
+  font-size: 1rem;
+  color: white;
+  border-radius: var(--radius);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+}
+
+/* ── Org header image ────────────────────────────────────── */
+.topbar-org-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.org-header-img {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+/* ── Profile page ────────────────────────────────────────── */
+.avatar-large {
+  width: 64px;
+  height: 64px;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.profile-orgs-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.org-profile-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(8, 17, 31, 0.54);
+  padding: 12px;
+}
+
+.org-profile-avatar {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  background: rgba(46,107,255,0.18);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.profile-link {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.profile-link:hover {
+  color: var(--accent);
+}
+
+.member-profile-link {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.member-profile-link:hover {
+  color: var(--accent);
+}
+
+/* ── Org cards (dashboard) ───────────────────────────────── */
+.orgs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.org-card {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(8, 17, 31, 0.54);
+  padding: 14px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.org-card:hover {
+  border-color: rgba(99, 151, 255, 0.5);
+  background: rgba(8, 17, 31, 0.8);
+}
+
+.org-card-img {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+  background: rgba(46, 107, 255, 0.18);
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.org-card-info {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.org-card-info strong {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.org-card-info span {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

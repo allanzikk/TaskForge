@@ -16,32 +16,35 @@
           <strong>TaskForge</strong>
         </div>
 
-        <div class="sidebar-block">
-          <p class="sidebar-label">Organização atual</p>
-          <select id="org-switcher" class="org-switcher" aria-label="Organização atual"></select>
-        </div>
-
         <nav class="page-nav" aria-label="Navegação principal">
           <a class="nav-link active" href="./dashboard.html"><span class="nav-icon">V</span>Visão geral</a>
-          <a id="members-nav-link" class="nav-link" href="./organization.html"><span class="nav-icon">M</span>Membros</a>
-          <a id="projects-nav-link" class="nav-link" href="./organization.html"><span class="nav-icon">P</span>Projetos</a>
-          <a id="tasks-nav-link" class="nav-link" href="./project.html"><span class="nav-icon">T</span>Tarefas</a>
-          <button class="nav-link nav-button" type="button" data-coming-soon="Relatórios"><span class="nav-icon">R</span>Relatórios</button>
-          <button class="nav-link nav-button" type="button" data-coming-soon="Configurações"><span class="nav-icon">C</span>Configurações</button>
         </nav>
 
         <form id="create-org-form" class="compact-form sidebar-form">
           <label>
             Nova organização
-            <input id="org-name-input" type="text" minlength="3" maxlength="30" placeholder="Nome da organização" required>
+            <input id="org-name-input" type="text" minlength="3" maxlength="30" placeholder="Nome" required>
+          </label>
+          <label>
+            Descrição
+            <input id="org-description-input" type="text" minlength="3" maxlength="120" placeholder="Descrição" required>
+          </label>
+          <label>
+            Imagem <span class="muted">(opcional)</span>
+            <input id="org-img-input" type="file" accept="image/jpeg,image/png">
           </label>
           <button class="primary-button" type="submit">Criar</button>
         </form>
 
         <div class="sidebar-user">
-          <div class="avatar" data-current-avatar>U</div>
+          <div class="avatar-upload-wrap">
+            <span class="avatar avatar-upload" data-current-avatar>
+              <span class="avatar-upload-hint">✎</span>
+            </span>
+            <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
+          </div>
           <div>
-            <strong data-current-user>Usuário</strong>
+            <a class="profile-link" data-current-user data-current-profile-link href="#">Usuário</a>
             <span>Conta ativa</span>
           </div>
           <button data-logout class="icon-menu" type="button" aria-label="Sair">Sair</button>
@@ -53,105 +56,32 @@
           <div>
             <p class="eyebrow">Visão geral</p>
             <h1 id="dashboard-title">Olá</h1>
-            <p id="dashboard-subtitle" class="muted">Aqui está o que está acontecendo na sua organização hoje.</p>
+            <p id="dashboard-subtitle" class="muted">Suas organizações.</p>
           </div>
           <div class="topbar-actions">
-            <label class="search-box">
-              <span>Buscar</span>
-              <input id="global-search" type="search" placeholder="Buscar projetos, tarefas e membros">
-            </label>
             <span id="api-status" class="status-chip">API pronta</span>
           </div>
         </header>
 
-        <section id="no-org-state" class="empty-state is-hidden">
-          <div>
-            <p class="eyebrow">Sem organização</p>
-            <h2>Crie uma organização para abrir o painel.</h2>
-          </div>
-        </section>
-
-        <section id="dashboard-content" class="dashboard-content is-hidden">
-          <div class="metrics-grid">
-            <article class="metric-card accent-purple">
-              <span class="metric-icon">M</span>
-              <p>Membros</p>
-              <strong id="members-stat">0</strong>
-              <small>+0 este mês</small>
-            </article>
-            <article class="metric-card accent-blue">
-              <span class="metric-icon">P</span>
-              <p>Projetos</p>
-              <strong id="projects-stat">0</strong>
-              <small>+0 este mês</small>
-            </article>
-            <article class="metric-card accent-green">
-              <span class="metric-icon">OK</span>
-              <p>Tarefas concluídas</p>
-              <strong id="completed-stat">0</strong>
-              <small>Depende de status no servidor</small>
-            </article>
-            <article class="metric-card accent-orange">
-              <span class="metric-icon">!</span>
-              <p>Tarefas pendentes</p>
-              <strong id="pending-stat">0</strong>
-              <small>Calculado por fallback</small>
-            </article>
-          </div>
-
-          <div class="overview-grid">
-            <section class="panel span-2" aria-labelledby="recent-projects-title">
-              <div class="panel-heading horizontal">
-                <div>
-                  <p class="eyebrow">Portfólio</p>
-                  <h2 id="recent-projects-title">Projetos recentes</h2>
-                </div>
-                <a id="view-projects-link" class="link-button" href="./organization.html">Ver todos</a>
+        <section id="dashboard-content" class="dashboard-content">
+          <section id="invites-panel" class="panel is-hidden" aria-labelledby="invites-title">
+            <div class="panel-heading horizontal">
+              <div>
+                <p class="eyebrow">Pendentes</p>
+                <h2 id="invites-title">Convites recebidos</h2>
               </div>
-              <div id="overview-projects" class="project-rows"></div>
-            </section>
+              <span id="invites-count" class="count-pill">0</span>
+            </div>
+            <div id="invites-list" class="invites-grid"></div>
+          </section>
 
-            <section class="panel" aria-labelledby="recent-members-title">
-              <div class="panel-heading horizontal">
-                <div>
-                  <p class="eyebrow">Equipe</p>
-                  <h2 id="recent-members-title">Membros recentes</h2>
-                </div>
-                <a id="view-members-link" class="link-button" href="./organization.html">Ver todos</a>
-              </div>
-              <div id="overview-members" class="member-stack"></div>
-            </section>
-
-            <section class="panel span-2" aria-labelledby="pending-tasks-title">
-              <div class="panel-heading horizontal">
-                <div>
-                  <p class="eyebrow">Execução</p>
-                  <h2 id="pending-tasks-title">Tarefas pendentes</h2>
-                </div>
-                <span class="status-chip subdued">Prioridade por fallback</span>
-              </div>
-              <div id="overview-tasks" class="task-table"></div>
-            </section>
-
-            <section class="panel" aria-labelledby="activity-title">
-              <div class="panel-heading">
-                <p class="eyebrow">Histórico</p>
-                <h2 id="activity-title">Atividade recente</h2>
-              </div>
-              <div id="activity-list" class="activity-list"></div>
-            </section>
-
-            <section id="invites-panel" class="panel span-3 is-hidden" aria-labelledby="invites-title">
-              <div class="panel-heading horizontal">
-                <div>
-                  <p class="eyebrow">Pendentes</p>
-                  <h2 id="invites-title">Convites recebidos</h2>
-                </div>
-                <span id="invites-count" class="count-pill">0</span>
-              </div>
-              <div id="invites-list" class="invites-grid"></div>
-            </section>
-          </div>
+          <section class="panel" aria-labelledby="orgs-title">
+            <div class="panel-heading">
+              <p class="eyebrow">Minhas organizações</p>
+              <h2 id="orgs-title">Organizações</h2>
+            </div>
+            <div id="orgs-list" class="orgs-grid"></div>
+          </section>
         </section>
       </main>
     </section>
