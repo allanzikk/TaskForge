@@ -54,6 +54,7 @@
   --radius:      8px;
   --radius-lg:   12px;
   --sidebar-width: 248px;
+  --sidebar-collapsed-width: 72px;
 
   font-family: 'Geist', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
@@ -339,8 +340,13 @@ label {
 /* ── App Shell ──────────────────────────────────────────── */
 .app-shell {
   display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
   min-height: 100vh;
+  transition: grid-template-columns 180ms ease;
+}
+
+.app-shell:has(.sidebar:hover) {
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
 }
 
 /* ── Sidebar ────────────────────────────────────────────── */
@@ -349,6 +355,7 @@ label {
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   display: grid;
   grid-template-rows: auto auto 1fr auto;
   gap: 6px;
@@ -358,8 +365,32 @@ label {
 }
 
 .sidebar-brand {
+  justify-content: center;
   padding: 4px 6px 10px;
   margin-bottom: 2px;
+}
+
+.sidebar:hover .sidebar-brand {
+  justify-content: flex-start;
+}
+
+.brand-label,
+.nav-label,
+.sidebar-user-info {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateX(-6px);
+  transition: max-width 180ms ease, opacity 140ms ease, transform 140ms ease;
+  white-space: nowrap;
+}
+
+.sidebar:hover .brand-label,
+.sidebar:hover .nav-label,
+.sidebar:hover .sidebar-user-info {
+  max-width: 160px;
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .sidebar-form {
@@ -373,7 +404,7 @@ label {
   margin: 0 0 10px;
   color: var(--text-muted);
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 200;
   letter-spacing: 0.10em;
   text-transform: uppercase;
   padding: 0 4px;
@@ -400,6 +431,7 @@ label {
   min-height: 36px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   border: 1px solid transparent;
   border-radius: var(--radius);
@@ -411,6 +443,10 @@ label {
   text-decoration: none;
   text-align: left;
   transition: all 130ms ease;
+}
+
+.sidebar:hover .nav-link {
+  justify-content: flex-start;
 }
 
 .nav-link:hover {
@@ -442,14 +478,20 @@ label {
 /* ── Sidebar User ───────────────────────────────────────── */
 .sidebar-user {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto 0 auto;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: rgba(10, 20, 36, 0.60);
-  padding: 10px;
+  padding: 5px;
   margin-top: 4px;
+}
+
+.sidebar:hover .sidebar-user {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-content: stretch;
 }
 
 .sidebar-user strong,
@@ -1250,12 +1292,33 @@ label {
 @media (max-width: 900px) {
   .auth-screen { grid-template-columns: 1fr; }
 
-  .app-shell { grid-template-columns: 1fr; }
+  .app-shell,
+  .app-shell:has(.sidebar:hover) {
+    grid-template-columns: 1fr;
+  }
 
   .sidebar {
     position: static;
     height: auto;
     grid-template-rows: none;
+  }
+
+  .sidebar-brand,
+  .nav-link {
+    justify-content: flex-start;
+  }
+
+  .brand-label,
+  .nav-label,
+  .sidebar-user-info {
+    max-width: 160px;
+    opacity: 1;
+    transform: none;
+  }
+
+  .sidebar-user {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    justify-content: stretch;
   }
 
   .workspace { padding: 20px; }
@@ -1845,4 +1908,40 @@ label {
   background: rgba(251, 146, 60, 0.10);
   border: 1px solid rgba(251, 146, 60, 0.18);
   color: #fdba74;
+}
+
+
+/* ===== Ajuste: usuário da sidebar mais compacto ===== */
+.sidebar-user{
+  padding: 8px 10px;
+  gap: 8px;
+  min-height: 54px;
+}
+
+.sidebar-user .avatar{
+  width: 28px;
+  height: 28px;
+  font-size: .7rem;
+}
+
+.sidebar-user strong{
+  font-size: .82rem;
+}
+
+.sidebar-user span{
+  font-size: .68rem;
+}
+
+.sidebar-user .ghost-button,
+.sidebar-user button{
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: .75rem;
+}
+
+/* Ajuste extra para telas menores */
+@media (max-width: 560px){
+  .sidebar-user{
+    padding: 8px;
+  }
 }

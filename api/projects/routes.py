@@ -11,6 +11,7 @@ projects_bp = Blueprint("projects", __name__)
 @jwt_required()
 def org_projects(org_id):
     user_id = uuid.UUID(get_jwt_identity())
+    org_id = uuid.UUID(org_id)
     exists = verify_org_member(org_id, user_id)
     if not exists:
         return {

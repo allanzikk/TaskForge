@@ -10,7 +10,7 @@ def create_app():
 
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
     app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "dev-jwt-key")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("SQLALCHEMY_DATABASE_URI")
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("SQLALCHEMY_DATABASE_URI", "sqlite:///database.db")
 
     db.init_app(app)
     bcrypt.init_app(app)

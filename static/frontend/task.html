@@ -11,45 +11,49 @@
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
     <section class="app-shell">
 
-      <aside class="sidebar">
+      <aside class="sidebar sidebar-clean">
         <div class="brand-lockup sidebar-brand">
           <img class="brand-mark" src="http://localhost:5000/static/icons/TaskForgeLogo.png" alt="TaskForge">
-          <strong>TaskForge</strong>
+          <strong class="brand-label">TaskForge</strong>
         </div>
         <nav class="page-nav" aria-label="Navegação principal">
           <a class="nav-link" href="./dashboard.html">
             <span class="nav-icon">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".9"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/></svg>
             </span>
-            Organizações
+            <span class="nav-label">Organizações</span>
           </a>
           <a id="org-nav-link" class="nav-link is-hidden" href="#">
             <span class="nav-icon">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
             </span>
-            Organização
+            <span class="nav-label">Organização</span>
           </a>
           <a id="project-nav-link" class="nav-link is-hidden" href="#">
             <span class="nav-icon">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
             </span>
-            Projeto
+            <span class="nav-label">Projeto</span>
           </a>
           <a class="nav-link active" href="#">
             <span class="nav-icon">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 8l2 2 3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </span>
-            Tarefa
+            <span class="nav-label">Tarefa</span>
           </a>
         </nav>
 
+        <div class="sidebar-spacer"></div>
+
         <div class="sidebar-user">
           <div class="avatar" data-current-avatar>U</div>
-          <div>
+          <div class="sidebar-user-info">
             <a class="profile-link" data-current-user data-current-profile-link href="#">Usuário</a>
             <span>Conta ativa</span>
           </div>
-          <button data-logout class="icon-menu" type="button" aria-label="Sair" style="padding:0 10px;font-size:0.78rem;">Sair</button>
+          <button data-logout class="icon-menu sidebar-logout" type="button" aria-label="Sair">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10.5 5.5L13 8l-2.5 2.5M13 8H6M6 2.5H3.5A1 1 0 002.5 3.5v9a1 1 0 001 1H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
         </div>
       </aside>
 

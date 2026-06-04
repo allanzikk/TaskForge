@@ -11,25 +11,27 @@
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
     <section class="app-shell">
 
-      <aside class="sidebar">
+      <aside class="sidebar sidebar-clean">
         <div class="brand-lockup sidebar-brand">
           <img class="brand-mark" src="http://localhost:5000/static/icons/TaskForgeLogo.png" alt="TaskForge">
-          <strong>TaskForge</strong>
+          <strong class="brand-label">TaskForge</strong>
         </div>
         <nav class="page-nav" aria-label="Navegação principal">
           <a class="nav-link" href="./dashboard.html">
             <span class="nav-icon">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".9"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/></svg>
             </span>
-            Organizações
+            <span class="nav-label">Organizações</span>
           </a>
           <a class="nav-link active" href="#">
             <span class="nav-icon">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M2 15c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
             </span>
-            Perfil
+            <span class="nav-label">Perfil</span>
           </a>
         </nav>
+
+        <div class="sidebar-spacer"></div>
 
         <div class="sidebar-user">
           <div class="avatar-upload-wrap">
@@ -38,11 +40,13 @@
             </span>
             <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
           </div>
-          <div>
+          <div class="sidebar-user-info">
             <strong data-current-user>Usuário</strong>
             <span>Conta ativa</span>
           </div>
-          <button data-logout class="icon-menu" type="button" aria-label="Sair" style="padding:0 10px;font-size:0.78rem;">Sair</button>
+          <button data-logout class="icon-menu sidebar-logout" type="button" aria-label="Sair">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10.5 5.5L13 8l-2.5 2.5M13 8H6M6 2.5H3.5A1 1 0 002.5 3.5v9a1 1 0 001 1H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
         </div>
       </aside>
 
