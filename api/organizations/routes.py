@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from .services import organizations_service, create_organization_service, organization_service, remove_organization_service, invite_service, accept_invite_service, members_service, member_service, edit_member_service, edit_org_service, remove_img_service
+from .services import organizations_service, create_organization_service, organization_service, remove_organization_service, invite_service, accept_invite_service, members_service, member_service, edit_member_service, edit_org_service, remove_img_service, leave_org_service, reject_invite_service, transfer_ownership_service
 import uuid
 
 org_bp = Blueprint("organizations", __name__)
@@ -97,4 +97,29 @@ def remove_img(org_id):
     org_id = uuid.UUID(org_id)
     user_id = uuid.UUID(get_jwt_identity())
     response = remove_img_service(org_id, user_id)
+    return response
+
+@org_bp.route("/organizations/<org_id>/leave", methods=["DELETE"])
+@jwt_required()
+def leave_org(org_id):
+    org_id = uuid.UUID(org_id)
+    user_id = uuid.UUID(get_jwt_identity())
+    response = leave_org_service(org_id, user_id)
+    return response
+
+@org_bp.route("/invite/<invite_id>", methods=["DELETE"])
+@jwt_required()
+def reject_invite(invite_id):
+    invite_id = uuid.UUID(invite_id)
+    user_id = uuid.UUID(get_jwt_identity())
+    response = reject_invite_service(invite_id, user_id)
+    return response
+
+@org_bp.route("/organizations/<org_id>/transfer-ownership", methods=["POST"])
+@jwt_required()
+def transfer_ownership(org_id):
+    org_id = uuid.UUID(org_id)
+    user_id = uuid.UUID(get_jwt_identity())
+    data = request.get_json()
+    response = transfer_ownership_service(data, org_id, user_id)
     return response

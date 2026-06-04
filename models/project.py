@@ -11,4 +11,4 @@ class Project(db.Model):
     tasks_completed = db.Column(db.Integer, default=0)
 
     org = db.relationship("Organization", back_populates="projects")
-    tasks = db.relationship("Task", back_populates="project")
+    tasks = db.relationship("Task", back_populates="project", cascade="all, delete-orphan")

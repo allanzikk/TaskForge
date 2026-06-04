@@ -1,15 +1,22 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from .services import user_service, invites_service, edit_user_service, remove_pfp_service
+from .services import user_service, invites_service, edit_user_service, remove_pfp_service, search_user_service
 import uuid
 
 users_bp = Blueprint("users", __name__)
 
 
+@users_bp.route("/users")
+@jwt_required()
+def user():
+    user_id = uuid.UUID(request.args.get("id"))
+    response = user_service(user_id)
+    return response
+
 @users_bp.route("/users/<username>")
 @jwt_required()
-def user(username):
-    response = user_service(username)
+def search_user(username):
+    response = search_user_service(username)
     return response
 
 @users_bp.route("/users/<username>", methods=["PATCH"])

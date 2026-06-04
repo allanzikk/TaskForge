@@ -99,3 +99,24 @@ def project_service(project_id, user_id):
         "image_url": request.host_url+project.org.image.img_path if project.org.image else None,
         "tasks": tasks
     })
+
+def delete_project_service(project_id, user_id):
+    project = db.session.get(Project, project_id)
+    if not project:
+        return error(code="NOT_FOUND", message="project not found.", status=404)
+    
+    member = verify_org_member(project.org_id, user_id)
+    if not member:
+        error(
+            code="ORGANIZATION_ACCESS_DENIED", 
+            message="user doesnt have access to this organization.",
+            status=403)
+    
+    if member.role not in ["owner", "admin"]:
+        return error(code="INSUFFICIENT_PERMISSION",
+                    message="user needs to be owner or admin.",
+                    status=403)
+    
+    db.session.delete(project)
+    db.session.commit()
+    return success(message="done.")

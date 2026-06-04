@@ -10,6 +10,6 @@ class Organization(db.Model):
     img_id = db.Column(UUID(as_uuid=True), db.ForeignKey("image.id"), unique=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    members = db.relationship("Member", back_populates="org")
-    projects = db.relationship("Project", back_populates="org")
-    image = db.relationship("Image")
+    members = db.relationship("Member", back_populates="org", cascade="all, delete-orphan")
+    projects = db.relationship("Project", back_populates="org", cascade="all, delete-orphan")
+    image = db.relationship("Image", cascade="all, delete-orphan", single_parent=True, uselist=False)

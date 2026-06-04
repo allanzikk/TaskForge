@@ -25,15 +25,11 @@
           <label>
             Nova tarefa
             <input id="task-name-input" type="text" minlength="3" maxlength="30" placeholder="Nome da tarefa">
-          </span>
-            <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
-          </div>
+          </label>
           <label>
             Descrição
             <textarea id="task-description-input" minlength="3" maxlength="120" rows="4" placeholder="Contexto da tarefa"></textarea>
-          </span>
-            <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
-          </div>
+          </label>
           <label>
             Prioridade
             <select id="task-priority-input" required>
@@ -42,9 +38,7 @@
               <option value="high">Alta</option>
               <option value="very high">Muito alta</option>
             </select>
-          </span>
-            <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
-          </div>
+          </label>
           <button class="primary-button" type="submit">Adicionar tarefa</button>
         </form>
 
@@ -68,6 +62,7 @@
           <div class="topbar-actions">
             <span id="api-status" class="status-chip">API pronta</span>
             <span id="task-permission-chip" class="status-chip subdued">Tarefas</span>
+            <button id="delete-project-button" class="danger-button is-hidden" type="button">Excluir projeto</button>
           </div>
         </header>
 
@@ -111,6 +106,9 @@
               <span class="status-chip subdued">Status por fallback</span>
             </div>
             <div id="task-list" class="task-table"></div>
+            <div class="pagination-actions">
+              <button id="load-more-tasks" class="ghost-button is-hidden" type="button">Carregar mais</button>
+            </div>
           </section>
         </section>
       </main>

@@ -103,6 +103,13 @@ function initRegister() {
 function initDashboard() {
   if (!requireAuth()) return;
   $("#create-org-form")?.addEventListener("submit", handleCreateOrganization);
+  $("#user-search-btn")?.addEventListener("click", handleUserSearch);
+  $("#user-search-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); handleUserSearch(); }
+  });
+  $("#user-search-input")?.addEventListener("input", (e) => {
+    if (!e.target.value.trim()) $("#user-search-results")?.classList.add("is-hidden");
+  });
   initPfpUpload();
   runWithStatus(null, loadDashboard);
 }
@@ -163,8 +170,11 @@ function initProfilePage() {
 async function loadDashboard() {
   setApiStatus("Sincronizando");
 
+  const userId = appState.user?.id;
+  if (!userId) { toast("Sessão inválida.", "error"); logout(); return; }
+
   const [userPayload, invitesPayload] = await Promise.all([
-    apiRequest(`/users/${encodeURIComponent(appState.user?.username)}`).catch((e) => {
+    apiRequest(`/users?id=${encodeURIComponent(userId)}`).catch((e) => {
       if (isAuthFailure(e)) throw e;
       return null;
     }),
@@ -179,6 +189,13 @@ async function loadDashboard() {
     ? userData.orgs_user_is_member.map(normalizeOrganization)
     : [];
   appState.invites = normalizeInvitesList(invitesPayload);
+
+  // Atualiza pfp_url caso tenha mudado desde o login
+  if (userData.pfp_url !== undefined) {
+    appState.user = { ...appState.user, pfp_url: stringify(userData.pfp_url) };
+    localStorage.setItem(storageKeys.user, JSON.stringify(appState.user));
+    renderCurrentUserAvatar();
+  }
 
   renderDashboard();
   setApiStatus("API pronta");
@@ -529,20 +546,27 @@ async function loadProfilePage() {
   const username = getQueryParam("u");
   if (!username) { showProfileAccess("Usuário não informado."); return; }
 
-  // Evitar redirect no próprio perfil
-  if (page === "profile" && username === appState.user?.username) {
-    const profileLink = document.querySelector("[data-current-profile-link]");
-    if (profileLink) profileLink.href = `./profile.html?u=${encodeURIComponent(username)}`;
-  }
-
   setApiStatus("Sincronizando");
-  const payload = await apiRequest(`/users/${encodeURIComponent(username)}`).catch((e) => {
+
+  // Busca por username aproximado e acha o match exato
+  const searchPayload = await apiRequest(`/users/${encodeURIComponent(username)}`).catch((e) => {
     if (isAuthFailure(e)) throw e; return null;
   });
 
-  if (!payload) { showProfileAccess("Usuário não encontrado."); return; }
+  const results = readData(searchPayload);
+  const list = Array.isArray(results) ? results : [];
+  const found = list.find((u) => u.username.toLowerCase() === username.toLowerCase());
 
-  appState.profile = readData(payload);
+  if (!found) { showProfileAccess("Usuário não encontrado."); return; }
+
+  // Busca dados completos pelo ID
+  const userPayload = await apiRequest(`/users?id=${encodeURIComponent(found.id)}`).catch((e) => {
+    if (isAuthFailure(e)) throw e; return null;
+  });
+
+  if (!userPayload) { showProfileAccess("Usuário não encontrado."); return; }
+
+  appState.profile = readData(userPayload);
   renderProfilePage();
   setApiStatus("API pronta");
 }
@@ -783,6 +807,56 @@ async function handleCreateOrganization(event) {
   });
 }
 
+async function handleUserSearch() {
+  const input = $("#user-search-input");
+  const query = input?.value.trim();
+  const results = $("#user-search-results");
+  if (!query || !results) return;
+
+  await runWithStatus($("#user-search-btn"), async () => {
+    const payload = await apiRequest(`/users/${encodeURIComponent(query)}`);
+    const list = Array.isArray(readData(payload)) ? readData(payload) : [];
+    renderUserSearchResults(results, list);
+  });
+}
+
+function renderUserSearchResults(container, users) {
+  container.classList.remove("is-hidden");
+  clearNode(container);
+
+  if (!users.length) {
+    const msg = document.createElement("p");
+    msg.className = "empty-copy";
+    msg.textContent = "Nenhum usuário encontrado.";
+    container.append(msg);
+    return;
+  }
+
+  users.forEach((user) => {
+    const link = document.createElement("a");
+    link.className = "user-search-row";
+    link.href = `./profile.html?u=${encodeURIComponent(user.username)}`;
+
+    const avatar = document.createElement("span");
+    avatar.className = "avatar avatar-sm";
+    if (user.pfp_url) {
+      const img = document.createElement("img");
+      img.src = user.pfp_url;
+      img.alt = user.username;
+      img.className = "avatar-img";
+      avatar.append(img);
+    } else {
+      avatar.textContent = initials(user.username);
+    }
+
+    const name = document.createElement("strong");
+    name.textContent = user.username;
+
+    link.append(avatar, name);
+    container.append(link);
+  });
+}
+
 async function handleAcceptInviteById(inviteId, button) {
   if (!inviteId) return;
   await runWithStatus(button, async () => {
@@ -800,38 +874,52 @@ async function handleSearchUser() {
 
   await runWithStatus($("#invite-search-btn"), async () => {
     const payload = await apiRequest(`/users/${encodeURIComponent(username)}`);
-    const data = readData(payload);
-    renderInviteResult(resultBox, stringify(data.username || username), stringify(data.id));
+    const list = Array.isArray(readData(payload)) ? readData(payload) : [];
+    renderInviteResult(resultBox, list);
   });
 }
 
-function renderInviteResult(container, username, userId) {
+function renderInviteResult(container, users) {
   container.classList.remove("is-hidden");
   clearNode(container);
 
-  if (!userId) {
+  if (!users.length) {
     const err = document.createElement("p");
     err.className = "invite-result-error";
-    err.textContent = "Usuário não encontrado.";
+    err.textContent = "Nenhum usuário encontrado.";
     container.append(err);
     return;
   }
 
-  const name = document.createElement("strong");
-  name.className = "invite-result-name";
-  name.textContent = username;
+  users.forEach((user) => {
+    const row = document.createElement("div");
+    row.className = "invite-user-row";
 
-  const id = document.createElement("span");
-  id.className = "invite-result-id muted";
-  id.textContent = shortId(userId);
+    const avatar = document.createElement("span");
+    avatar.className = "avatar avatar-sm";
+    if (user.pfp_url) {
+      const img = document.createElement("img");
+      img.src = user.pfp_url;
+      img.alt = user.username;
+      img.className = "avatar-img";
+      avatar.append(img);
+    } else {
+      avatar.textContent = initials(user.username);
+    }
 
-  const send = document.createElement("button");
-  send.type = "button";
-  send.className = "primary-button";
-  send.textContent = "Convidar";
-  send.addEventListener("click", () => handleSendInvite(userId, send));
+    const name = document.createElement("strong");
+    name.className = "invite-result-name";
+    name.textContent = user.username;
 
-  container.append(name, id, send);
+    const send = document.createElement("button");
+    send.type = "button";
+    send.className = "ghost-button";
+    send.textContent = "Convidar";
+    send.addEventListener("click", () => handleSendInvite(stringify(user.id), send));
+
+    row.append(avatar, name, send);
+    container.append(row);
+  });
 }
 
 async function handleSendInvite(userId, button) {

@@ -9,30 +9,43 @@ from extensions import db
 import os
 
 
-def user_service(username):
+def search_user_service(username):
     if not username:
         return error(code="INVALID_DATA", message="username is required.")
-    user = User.query.filter_by(username=username).first()
+    users = User.query.filter(User.username.ilike(f"%{username}%")).limit(10).all()
+    users_json = []
+    for i in users:
+        users_json.append({
+            "id": i.id,
+            "username": i.username,
+            "pfp_url": request.host_url+i.image.img_path if i.image else None
+        })
+    return success(
+        data=users_json
+    )
+
+def user_service(user_id):
+    if not user_id:
+        return error(code="INVALID_DATA", message="user id is required.")
+    user = db.session.get(User, user_id)
     if not user:
         return error(code="NOT_FOUND", message="user not found.", status=404)
-    members_user = Member.query.filter_by(user_id=user.id).all()
-    if members_user:
-        orgs_user_is_member = [{
-            "id": i.org.id,
+    
+    members_user = Member.query.filter_by(user_id=user_id).all()
+    orgs_user_is_member = []
+    for i in members_user:
+        orgs_user_is_member.append({
+            "org_id": i.org_id,
             "name": i.org.name,
             "image_url": request.host_url+i.org.image.img_path if i.org.image else None
-        } for i in members_user]
-    else:
-        orgs_user_is_member = None
-    return success(
-        data={
-            "id": user.id,
-            "username": user.username,
-            "pfp_url": request.host_url+user.image.img_path if user.image else None,
-            "created_at": user.created_at,
-            "orgs_user_is_member": orgs_user_is_member
-        }
-    )
+        }) 
+    return success(data={
+        "id": user.id,
+        "username": user.username,
+        "pfp_url": request.host_url+user.image.img_path if user.image else None,
+        "created_at": user.created_at.isoformat(),
+        "orgs_user_is_member": orgs_user_is_member
+    })
 
 def invites_service(user_id):
     invites = Invite.query.filter_by(user_invited_id=user_id).all()

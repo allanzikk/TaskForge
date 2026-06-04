@@ -3,10 +3,9 @@ from ..utils.responses import success, error
 from ..utils.org_utils import verify_org_member
 from ..utils.project_utils import get_project_by_id
 from models.task import Task
+from sqlalchemy import and_, or_
 
-
-
-def tasks_service(project_id, user_id):
+def tasks_service(project_id, user_id, cursor_created_at, cursor_id, limit):
     project = get_project_by_id(project_id)
     if not project:
         return error(code="NOT_FOUND", message="project not found.", status=404)
@@ -17,18 +16,46 @@ def tasks_service(project_id, user_id):
             message="user doesnt have access to this organization.",
             status=403)
 
-    tasks_json = []
-    for i in project.tasks:
-        task = {
-            "id": i.id,
-            "name": i.name,
-            "priority": i.priority,
-            "is_completed": i.is_completed,
-            "created_at": i.created_at
-        }
-        tasks_json.append(task)
+    try:
+        if limit:
+            limit = int(limit)
+            if not 5 <= limit <= 20:
+                return error(code="INVALID_DATA", message="limit must be between 5-20.")
+        else:
+            limit = 10
+    except ValueError:
+        return error(code="INVALID_DATA", message="limit must be a number.")
     
-    return success(data=tasks_json)
+    query = Task.query.filter_by(project_id=project_id)
+    if cursor_created_at and cursor_id:
+        query = query.filter(or_(Task.created_at < cursor_created_at, and_(Task.created_at==cursor_created_at, Task.id<cursor_id)))
+
+    tasks = query.order_by(Task.created_at.desc(), Task.id.desc()).limit(limit+1).all()
+    
+    has_next = len(tasks) > limit
+    tasks = tasks[:limit]
+
+    tasks_json = []
+    next_cursor = None
+    
+    if tasks and has_next:
+        last_task = tasks[-1]
+        next_cursor = {
+            "created_at": last_task.created_at.isoformat(),
+            "id": str(last_task.id)
+        }
+
+    for task in tasks:
+        tasks_json.append({
+        "id": str(task.id),
+        "name": task.name,
+        "description": task.description,
+        "project_id": str(task.project_id),
+        "created_at": task.created_at.isoformat(),
+        "is_completed": task.is_completed,
+        "priority": task.priority
+    })
+    return success(data={"tasks":tasks_json, "next_cursor": next_cursor})
 
 def task_service(task_id, user_id):
     task = db.session.get(Task, task_id)

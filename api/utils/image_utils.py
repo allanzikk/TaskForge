@@ -38,6 +38,7 @@ def save_img_upload(img, extensions_allowed):
     image_name = f'{uuid.uuid4()}.{image_extension}'
     image_path = os.path.join("static", "uploads", image_name)
     if image_extension == "gif":
+        img.seek(0)
         img.save(image_path)
     else:
         image.save(image_path)

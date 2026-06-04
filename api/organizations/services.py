@@ -124,9 +124,12 @@ def remove_organization_service(org_id, user_id):
     
     for i in org.members:
         db.session.delete(i)
-    if os.path.exists(org.image.img_path):
-        os.remove(org.image.img_path)
-    db.session.delete(org.image)
+    try:
+        if os.path.exists(org.image.img_path):
+            os.remove(org.image.img_path)
+        db.session.delete(org.image)
+    except AttributeError:
+        pass
     db.session.delete(org)
     db.session.commit()
     return success(message="org deleted.")
@@ -339,3 +342,72 @@ def remove_img_service(org_id, user_id):
     db.session.commit()
     
     return success(message="done.")
+
+def leave_org_service(org_id, user_id):
+    member = verify_org_member(org_id, user_id)
+    if not member:
+        return error(
+            code="ACCESS_DENIED",
+            message="user doesnt have access to this org.",
+            status=403)
+    
+    if member.role == "owner":
+        return error(code="INSUFFICIENT_PERMISSION",
+                    message="owner can't leave org.",
+                    status=403)
+    
+    db.session.delete(member)
+    db.session.commit()
+    return success(message="done.")
+
+def reject_invite_service(invite_id, user_id):
+    invite = db.session.get(Invite, invite_id)
+    if not invite:
+        return error(code="NOT_FOUND", message="invite not found", status=404)
+    
+    if invite.user_invited_id != user_id:
+        return error(
+            code="ACCESS_DENIED",
+            message="user doesnt have access to this invite.",
+            status=403)
+    
+    db.session.delete(invite)
+    db.session.commit()
+    return success(message="done.")
+
+def transfer_ownership_service(data, org_id, user_id):
+    new_owner_id = data.get("new_owner_id")
+    if not new_owner_id:
+        return error(code="BAD_REQUEST", message="new_owner_id is required.")
+    
+    if new_owner_id == user_id:
+        return error(code="BAD_REQUEST", message="self transfering ownership is not allowed.")
+
+    member = verify_org_member(org_id, user_id)
+    if not member:
+        return error(
+            code="ACCESS_DENIED",
+            message="user doesnt have access to this org.",
+            status=403)
+    
+    if member.role != "owner":
+        return error(code="INSUFFICIENT_PERMISSION",
+                    message="only owner can transfer ownership.",
+                    status=403)
+    
+    new_owner = Member.query.with_entities(Member.role).filter_by(user_id=new_owner_id).first()
+    new_owner.role = "owner"
+    member.role = "admin"
+    db.session.commit()
+    return success(data={
+        "user_id":member.user_id,
+        "username": member.user.username,
+        "role": member.role,
+        "joined_at": member.created_at,
+        "org_id": member.org_id,
+        "org_name": member.org.name
+    })
+
+def search_organization(user_id, name):
+    members_user = Member.query.filter(Member.user_id == user_id, Member.org.name.ilike(f"%{name}%")).limit(10).all()
+    

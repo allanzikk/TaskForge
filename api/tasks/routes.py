@@ -2,6 +2,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import uuid
 from api.tasks.services import tasks_service, create_task_service, delete_task_service, edit_task_service, complete_task_service, task_service
+from datetime import datetime
 
 tasks_bp = Blueprint("tasks", __name__)
 
@@ -10,8 +11,17 @@ tasks_bp = Blueprint("tasks", __name__)
 def tasks(project_id):
     project_id = uuid.UUID(project_id)
     user_id = uuid.UUID(get_jwt_identity())
+    cursor_created_at = request.args.get("cursor_created_at")
+    cursor_id = request.args.get("cursor_id")
+    limit = request.args.get("limit")
 
-    response = tasks_service(project_id, user_id)
+    if cursor_created_at and cursor_id:
+        cursor_created_at = datetime.fromisoformat(cursor_created_at)
+        cursor_id = uuid.UUID(cursor_id)
+    else:
+        cursor_created_at = None
+        cursor_id = None
+    response = tasks_service(project_id, user_id, cursor_created_at, cursor_id, limit)
     return response
 
 @tasks_bp.route("/projects/<project_id>/tasks", methods=["POST"])
