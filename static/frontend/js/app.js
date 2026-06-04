@@ -20,6 +20,8 @@ const appState = {
   tasks: [],
   project: null,
   task: null,
+  taskNextCursor: null,
+  taskLimit: 10,
   profile: null,
   editingTaskId: "",
   editingMemberId: "",
@@ -103,12 +105,12 @@ function initRegister() {
 function initDashboard() {
   if (!requireAuth()) return;
   $("#create-org-form")?.addEventListener("submit", handleCreateOrganization);
-  $("#user-search-btn")?.addEventListener("click", handleUserSearch);
-  $("#user-search-input")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); handleUserSearch(); }
+  $("#org-search-btn")?.addEventListener("click", handleOrganizationSearch);
+  $("#org-search-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); handleOrganizationSearch(); }
   });
-  $("#user-search-input")?.addEventListener("input", (e) => {
-    if (!e.target.value.trim()) $("#user-search-results")?.classList.add("is-hidden");
+  $("#org-search-input")?.addEventListener("input", (e) => {
+    if (!e.target.value.trim()) renderOrgCards(appState.organizations, { label: "Todas" });
   });
   initPfpUpload();
   runWithStatus(null, loadDashboard);
@@ -142,6 +144,9 @@ function initProjectPage() {
   $("#copy-project-id")?.addEventListener("click", () => {
     copyText(getQueryParam("id"), "ID do projeto copiado.");
   });
+  $("#load-more-tasks")?.addEventListener("click", (event) => {
+    runWithStatus(event.currentTarget, () => loadMoreTasks());
+  });
   initPfpUpload();
   runWithStatus(null, loadProjectPage);
 }
@@ -162,6 +167,9 @@ function initProfilePage() {
   initPfpUpload();
   $("#profile-edit-form")?.addEventListener("submit", handleEditProfile);
   $("#remove-pfp-btn")?.addEventListener("click", handleRemovePfp);
+  $("#profile-invite-btn")?.addEventListener("click", (event) => {
+    handleSendInvite(appState.profile?.id, event.currentTarget);
+  });
   runWithStatus(null, loadProfilePage);
 }
 
@@ -185,9 +193,10 @@ async function loadDashboard() {
   ]);
 
   const userData = readData(userPayload);
-  appState.organizations = Array.isArray(userData.orgs_user_is_member)
+  const organizations = Array.isArray(userData.orgs_user_is_member)
     ? userData.orgs_user_is_member.map(normalizeOrganization)
     : [];
+  appState.organizations = await enrichOrganizations(organizations);
   appState.invites = normalizeInvitesList(invitesPayload);
 
   // Atualiza pfp_url caso tenha mudado desde o login
@@ -284,6 +293,92 @@ function renderInvitesPanel(invites) {
 }
 
 // ── Organization page ─────────────────────────────────────
+
+function renderDashboard() {
+  setText("#dashboard-title", `Olá, ${appState.user?.username || "usuário"}`);
+  setText("#orgs-total", String(appState.organizations.length));
+  setText("#open-tasks-total", String(sumOpenTasks(appState.organizations)));
+  renderInvitesPanel(appState.invites);
+  renderOrgCards(appState.organizations, { label: "Todas" });
+}
+
+function renderOrgCards(orgs, { label = "" } = {}) {
+  const container = $("#orgs-list");
+  if (!container) return;
+  clearNode(container);
+  if (label) setText("#orgs-result-label", label);
+  setText("#orgs-total", String(orgs.length));
+  setText("#open-tasks-total", String(sumOpenTasks(orgs)));
+
+  if (!orgs.length) {
+    container.append(emptyMessage("Nenhuma organização encontrada."));
+    return;
+  }
+
+  orgs.forEach((org) => {
+    const card = document.createElement("article");
+    card.className = "org-card";
+
+    // ── Header (avatar + info) ──
+    const header = document.createElement("div");
+    header.className = "org-card-header";
+
+    const imgEl = document.createElement("span");
+    imgEl.className = "org-card-img";
+    if (org.image_url) {
+      const img = document.createElement("img");
+      img.src = org.image_url;
+      img.alt = org.name;
+      img.className = "avatar-img";
+      imgEl.append(img);
+    } else {
+      imgEl.textContent = initials(org.name);
+    }
+
+    const info = document.createElement("div");
+    info.className = "org-card-info";
+    const name = document.createElement("strong");
+    name.textContent = org.name;
+    const desc = document.createElement("span");
+    desc.textContent = org.description || "Workspace TaskForge";
+    info.append(name, desc);
+
+    header.append(imgEl, info);
+
+    // ── Divider ──
+    const divider = document.createElement("div");
+    divider.className = "org-card-divider";
+
+    // ── Stats ──
+    const stats = document.createElement("div");
+    stats.className = "org-card-stats";
+    stats.append(
+      orgStat("Membros", formatCount(org.members_count)),
+      orgStat("Tarefas", formatCount(org.open_tasks_count)),
+      orgStat("Atividade", org.last_activity ? relativeDateLabel(org.last_activity) : "—")
+    );
+
+    // ── Action ──
+    const access = document.createElement("a");
+    access.className = "org-card-action";
+    access.href = `./organization.html?id=${encodeURIComponent(org.id)}`;
+    access.innerHTML = `Acessar organização <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+    card.append(header, divider, stats, access);
+    container.append(card);
+  });
+}
+
+function orgStat(label, value) {
+  const item = document.createElement("span");
+  item.className = "org-stat";
+  const strong = document.createElement("strong");
+  strong.textContent = value;
+  const small = document.createElement("small");
+  small.textContent = label;
+  item.append(strong, small);
+  return item;
+}
 
 async function loadOrganizationPage() {
   const orgId = getQueryParam("id");
@@ -405,13 +500,38 @@ async function loadProjectPage() {
     appState.membership = findCurrentMembership(appState.organization.members);
   }
 
-  const tasksPayload = await apiRequest(`/projects/${encodeURIComponent(projectId)}/tasks`).catch((e) => {
-    if (isAuthFailure(e)) throw e; return [];
+  const tasksPage = await fetchTasksPage(projectId).catch((e) => {
+    if (isAuthFailure(e)) throw e;
+    return { tasks: [], next_cursor: null };
   });
-  appState.tasks = normalizeList(tasksPayload).map((t) => normalizeTask(t, appState.project));
+  appState.tasks = tasksPage.tasks;
+  appState.taskNextCursor = tasksPage.next_cursor;
 
   renderProjectPage();
   setApiStatus("API pronta");
+}
+
+async function loadMoreTasks() {
+  const projectId = getQueryParam("id");
+  if (!projectId || !appState.taskNextCursor) return;
+
+  const tasksPage = await fetchTasksPage(projectId, appState.taskNextCursor);
+  appState.tasks = appState.tasks.concat(tasksPage.tasks);
+  appState.taskNextCursor = tasksPage.next_cursor;
+  renderProjectPage();
+}
+
+async function fetchTasksPage(projectId, cursor = null) {
+  const params = new URLSearchParams({ limit: String(appState.taskLimit) });
+  if (cursor?.created_at && cursor?.id) {
+    params.set("cursor_created_at", cursor.created_at);
+    params.set("cursor_id", cursor.id);
+  }
+
+  const payload = await apiRequest(`/projects/${encodeURIComponent(projectId)}/tasks?${params.toString()}`);
+  const pageData = normalizeTasksPage(payload);
+  pageData.tasks = pageData.tasks.map((task) => normalizeTask(task, appState.project || {}));
+  return pageData;
 }
 
 function renderProjectPage() {
@@ -440,6 +560,13 @@ function renderProjectPage() {
     canEdit: Boolean(membership),
     canDelete: canManageOrganization(membership),
   });
+  renderTaskPagination();
+}
+
+function renderTaskPagination() {
+  const button = $("#load-more-tasks");
+  if (!button) return;
+  button.classList.toggle("is-hidden", !appState.taskNextCursor);
 }
 
 function showProjectAccess(message) {
@@ -779,6 +906,71 @@ function buildTaskUrl(task) {
 }
 
 // ── Handlers ──────────────────────────────────────────────
+
+async function handleOrganizationSearch() {
+  const input = $("#org-search-input");
+  const name = input?.value.trim();
+  if (!name) {
+    renderOrgCards(appState.organizations, { label: "Todas" });
+    return;
+  }
+
+  await runWithStatus($("#org-search-btn"), async () => {
+    const params = new URLSearchParams({ name });
+    const payload = await apiRequest(`/organizations/search?${params.toString()}`);
+    const orgs = await enrichOrganizations(normalizeList(payload).map(normalizeOrganization));
+    renderOrgCards(orgs, { label: `Busca: ${name}` });
+  });
+}
+
+async function enrichOrganizations(orgs) {
+  return Promise.all(orgs.map(enrichOrganization));
+}
+
+async function enrichOrganization(org) {
+  const detailPayload = await apiRequest(`/organizations/${encodeURIComponent(org.id)}`).catch((e) => {
+    if (isAuthFailure(e)) throw e;
+    return null;
+  });
+  const detail = detailPayload ? normalizeOrganizationDetail(detailPayload, org.id) : null;
+  const projects = detail?.projects || [];
+  const openTasksCount = await countOpenTasksForProjects(projects);
+  const projectDates = projects.map((p) => p.created_at).filter(Boolean);
+  const lastActivity = latestDate([detail?.created_at, org.created_at, ...projectDates]);
+
+  return {
+    ...org,
+    ...detail,
+    id: org.id || detail?.id,
+    name: detail?.name || org.name,
+    image_url: detail?.image_url || org.image_url,
+    members_count: detail?.members?.length ?? org.members_count,
+    open_tasks_count: openTasksCount,
+    last_activity: lastActivity,
+  };
+}
+
+async function countOpenTasksForProjects(projects) {
+  const counts = await Promise.all(projects.map(async (project) => {
+    const tasks = await fetchAllTasksForProject(project.id);
+    return tasks.filter((task) => !isTaskDone(task)).length;
+  }));
+  return counts.reduce((total, count) => total + count, 0);
+}
+
+async function fetchAllTasksForProject(projectId) {
+  const tasks = [];
+  let cursor = null;
+  do {
+    const pageData = await fetchTasksPage(projectId, cursor).catch((e) => {
+      if (isAuthFailure(e)) throw e;
+      return { tasks: [], next_cursor: null };
+    });
+    tasks.push(...pageData.tasks);
+    cursor = pageData.next_cursor;
+  } while (cursor);
+  return tasks;
+}
 
 async function handleCreateOrganization(event) {
   event.preventDefault();
@@ -1335,6 +1527,15 @@ function normalizeList(payload) {
   return [];
 }
 
+function normalizeTasksPage(payload) {
+  const data = readData(payload);
+  const tasks = Array.isArray(data.tasks) ? data.tasks : normalizeList(payload);
+  return {
+    tasks,
+    next_cursor: data.next_cursor || null,
+  };
+}
+
 function normalizeOrganization(raw) {
   return {
     id: stringify(raw.id || raw.org_id),
@@ -1484,6 +1685,35 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(date);
+}
+
+function relativeDateLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Sem atividade";
+  const diffMs = Date.now() - date.getTime();
+  const diffDays = Math.max(0, Math.floor(diffMs / 86400000));
+  if (diffDays === 0) return "Hoje";
+  if (diffDays === 1) return "Ha 1 dia";
+  if (diffDays < 30) return `Ha ${diffDays} dias`;
+  return formatDate(value);
+}
+
+function latestDate(values) {
+  const dates = values
+    .filter(Boolean)
+    .map((value) => new Date(value))
+    .filter((date) => !Number.isNaN(date.getTime()));
+  if (!dates.length) return "";
+  return new Date(Math.max(...dates.map((date) => date.getTime()))).toISOString();
+}
+
+function sumOpenTasks(orgs) {
+  return orgs.reduce((total, org) => total + (Number(org.open_tasks_count) || 0), 0);
+}
+
+function formatCount(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? String(n) : "0";
 }
 
 async function runWithStatus(button, task) {

@@ -81,14 +81,6 @@ def project_service(project_id, user_id):
             message="user doesnt have access to this organization.",
             status=403)
 
-    tasks = []
-    for i in project.tasks:
-        task = {
-            "id": i.id,
-            "name": i.name,
-            "is_completed": i.is_completed
-        }
-        tasks.append(task)
     return success(data={
         "id": project.id,
         "name": project.name,
@@ -96,8 +88,7 @@ def project_service(project_id, user_id):
         "progress": round(project.tasks_completed / len(project.tasks) * 100, 1) if project.tasks else 0,
         "org_id": project.org_id,
         "org_name": project.org.name,
-        "image_url": request.host_url+project.org.image.img_path if project.org.image else None,
-        "tasks": tasks
+        "image_url": request.host_url+project.org.image.img_path if project.org.image else None
     })
 
 def delete_project_service(project_id, user_id):

@@ -38,7 +38,7 @@ def create_organization_service(data, owner_id):
         return error("INVALID_DATA", "description out of limit (3-120).")
 
 
-    user = db.session.get(User, uuid.UUID(owner_id))
+    user = db.session.get(User, owner_id)
     exists = Organization.query.filter_by(name=name).first()
     if exists is not None:
         return error(code="CONFLICT", message="org already exists.", status=409)
@@ -51,6 +51,8 @@ def create_organization_service(data, owner_id):
         img_path = response[1]
         image = Image(img_path=img_path)
         db.session.flush()
+    else:
+        image = None
 
     org = Organization(name=name, description=description, image=image)
     db.session.add(org)
@@ -408,6 +410,16 @@ def transfer_ownership_service(data, org_id, user_id):
         "org_name": member.org.name
     })
 
-def search_organization(user_id, name):
-    members_user = Member.query.filter(Member.user_id == user_id, Member.org.name.ilike(f"%{name}%")).limit(10).all()
-    
+def search_organization_service(user_id, name):
+    if not name:
+        return error(code="BAD_REQUEST", message="name can't be empty.")
+
+    members_user = Member.query.join(Member.org).filter(Member.user_id == user_id, Organization.name.ilike(f"%{name}%")).limit(10).all()
+    orgs_json = []
+    for i in members_user:
+        orgs_json.append({
+            "id": i.org_id,
+            "name": i.org.name,
+            "image_url": request.host_url+i.org.image.img_path if i.org.image else None
+        })
+    return success(data=orgs_json)

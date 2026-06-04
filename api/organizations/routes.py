@@ -1,12 +1,12 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from .services import organizations_service, create_organization_service, organization_service, remove_organization_service, invite_service, accept_invite_service, members_service, member_service, edit_member_service, edit_org_service, remove_img_service, leave_org_service, reject_invite_service, transfer_ownership_service
+from .services import organizations_service, create_organization_service, organization_service, remove_organization_service, invite_service, accept_invite_service, members_service, member_service, edit_member_service, edit_org_service, remove_img_service, leave_org_service, reject_invite_service, transfer_ownership_service, search_organization_service
 import uuid
 
 org_bp = Blueprint("organizations", __name__)
 
 
-@org_bp.route("/organizations", methods=["GET"])
+@org_bp.route("/organizations")
 @jwt_required()
 def organizations():
     user_id = uuid.UUID(get_jwt_identity())
@@ -16,11 +16,19 @@ def organizations():
 @org_bp.route("/organizations", methods=["POST"])
 @jwt_required()
 def create_organization():
-    owner_id = get_jwt_identity()
+    owner_id = uuid.UUID(get_jwt_identity())
     data = request.form.copy()
     data["img"] = request.files.get("img")
 
     response = create_organization_service(data, owner_id)
+    return response
+
+@org_bp.route("/organizations/search")
+@jwt_required()
+def search_organization():
+    name = request.args.get("name")
+    user_id = uuid.UUID(get_jwt_identity())
+    response = search_organization_service(user_id, name)
     return response
 
 @org_bp.route("/organizations/<org_id>")
