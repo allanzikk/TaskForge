@@ -1,0 +1,12 @@
+__pycache__/
+venv/
+.env
+*.pyc
+melhorias.txt
+static/uploads/*
+instance/
+API.md
+PLANEJAMENTO.md
+executar.bat
+.gitignore
+.git

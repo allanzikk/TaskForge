@@ -44,7 +44,7 @@ def create_account_service(data):
     if 30 < len(username):
         return error("INVALID_DATA", "username can't be longer than 30 characters.")
     if len(username) < 4:
-        return error("INVALID_DATA", "username can't be shorter than 30 characters.")
+        return error("INVALID_DATA", "username can't be shorter than 4 characters.")
     if len(password) > 72:
         return error("INVALID_DATA", "password can't be longer than 72 characters.")
     if len(password) < 8:

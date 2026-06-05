@@ -1,0 +1,27 @@
+services:
+  web:
+    build: .
+    env_file:
+    - .env
+
+    command: gunicorn --bind 0.0.0.0:5000 "app_factory:create_app()"
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    depends_on:
+    - db
+    volumes:
+    - uploads_data:/app/static/uploads
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taskforge
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 0704bd0075cd85e405694058813fb8614cca732c3667aca63b3e099afbafafee
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:
+  uploads_data:

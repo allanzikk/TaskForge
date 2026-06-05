@@ -86,6 +86,8 @@ def edit_user_service(data, username, user_id):
         user.image = image
 
     if name:
+        if not 4 <= len(name) <= 20:
+            return error("INVALID_DATA", "name out of limit (4-20).")
         user.username = name
     
     db.session.commit()

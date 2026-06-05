@@ -149,6 +149,13 @@ def invite_service(user_invited_id, org_id, user_id):
                     message="user needs to be owner or admin.",
                     status=403)
     
+    user_is_already_member = verify_org_member(org_id, user_invited_id)
+    if user_is_already_member:
+        return error(code="CONFLICT", message="user is already a member.", status=409)
+
+    invite_exists = Invite.query.filter_by(member_id=member.id, user_invited_id=user_invited_id).first()
+    if invite_exists:
+        return error(code="CONFLICT", message="user already invited.", status=409)
     
     user_invited = db.session.get(User, user_invited_id)
 
