@@ -1,5 +1,5 @@
 from flask import Flask
-from extensions import db, bcrypt, jwt, migrate
+from extensions import db, bcrypt, jwt, migrate, cors
 from dotenv import load_dotenv
 import os
 from api import api_bp
@@ -17,6 +17,8 @@ def create_app():
     bcrypt.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
+    cors.init_app(app, origins=["https://celadon-florentine-958922.netlify.app"])
+
 
     with app.app_context():
         while True:
