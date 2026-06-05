@@ -14,8 +14,6 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("SQLALCHEMY_DATABASE_URI")
 
     db.init_app(app)
-
-
     bcrypt.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
@@ -27,5 +25,9 @@ def create_app():
                 break
             except Exception:
                 sleep(2)
+
+        from flask_migrate import upgrade
+        upgrade()
+
     app.register_blueprint(api_bp)
     return app
