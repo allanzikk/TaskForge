@@ -19,7 +19,7 @@ services:
     environment:
       POSTGRES_DB: taskforge
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 0704bd0075cd85e405694058813fb8614cca732c3667aca63b3e099afbafafee
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
 volumes:

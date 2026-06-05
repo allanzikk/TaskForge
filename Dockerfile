@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["python", "main.py"]
+CMD ["sh", "-c", "gunicorn -b 0.0.0.0:$PORT wsgi:app"]
