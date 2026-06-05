@@ -129,6 +129,10 @@ def remove_organization_service(org_id, user_id):
     try:
         if os.path.exists(org.image.img_path):
             os.remove(org.image.img_path)
+        
+        org.img_id = None
+        db.session.flush()
+
         db.session.delete(org.image)
     except AttributeError:
         pass
