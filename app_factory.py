@@ -17,7 +17,7 @@ def create_app():
     bcrypt.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
-    cors.init_app(app, origins=["https://celadon-florentine-958922.netlify.app"], methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
+    cors.init_app(app, origins=["https://www.taskforge.app.br"], methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
 
 
     with app.app_context():
