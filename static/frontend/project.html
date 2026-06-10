@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Projeto | TaskForge</title>
+    <link rel="icon" href="http://localhost:5000/static/icons/TaskForgeLogo.png">
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body data-page="project">
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <section class="app-shell">
+
+      <!-- ── Sidebar ──────────────────────────────────────────── -->
+      <aside class="sidebar sidebar-clean">
+        <div class="brand-lockup sidebar-brand">
+          <img class="brand-mark" src="http://localhost:5000/static/icons/TaskForgeLogo.png" alt="TaskForge">
+          <strong class="brand-label">TaskForge</strong>
+        </div>
+
+        <nav class="page-nav" aria-label="Navegação principal">
+          <a class="nav-link" href="./dashboard.html">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".9"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/></svg>
+            </span>
+            <span class="nav-label">Organizações</span>
+          </a>
+          <a id="org-nav-link" class="nav-link is-hidden" href="#">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5v9a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9z" stroke="currentColor" stroke-width="1.4"/><path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </span>
+            <span class="nav-label">Organização</span>
+          </a>
+          <a class="nav-link active" href="#task-list">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </span>
+            <span class="nav-label">Tarefas</span>
+          </a>
+        
+          <button class="nav-link" id="open-chat-drawer" type="button" aria-label="Chats">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 9.5A5.5 5.5 0 018.5 15H3a1 1 0 01-1-1V9.5a5.5 5.5 0 0111 0z" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V2.5A1.5 1.5 0 016.5 1h6A1.5 1.5 0 0114 2.5V7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <span class="nav-label">Chats</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+
+        <div class="sidebar-user">
+          <div class="avatar avatar-upload" data-current-avatar>
+            <span class="avatar-upload-hint">✎</span>
+          </div>
+          <div class="sidebar-user-info">
+            <a class="profile-link" data-current-user data-current-profile-link href="#">Usuário</a>
+            <span>Conta ativa</span>
+          </div>
+          <button data-logout class="icon-menu sidebar-logout" type="button" aria-label="Sair">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10.5 5.5L13 8l-2.5 2.5M13 8H6M6 2.5H3.5A1 1 0 002.5 3.5v9a1 1 0 001 1H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- ── Main ──────────────────────────────────────────────── -->
+      <main class="workspace workspace-org">
+
+        <!-- Header do projeto -->
+        <header class="org-header-bar">
+          <div class="org-header-identity">
+            <div class="org-header-text">
+              <p class="eyebrow">Projeto</p>
+              <h1 id="project-title">Carregando…</h1>
+              <p id="project-subtitle" class="org-header-desc">Tarefas e execução do projeto.</p>
+            </div>
+          </div>
+
+          <div class="org-header-meta">
+            <div class="org-meta-row">
+              <div class="org-meta-item">
+                <span class="org-meta-label">ID do projeto</span>
+                <div class="org-meta-id-row">
+                  <span class="org-meta-id-value" id="project-id-display">—</span>
+                  <button id="copy-project-id" class="copy-id-btn" type="button">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" stroke-width="1.5"/></svg>
+                    Copiar
+                  </button>
+                </div>
+              </div>
+              <div class="org-meta-item">
+                <span class="org-meta-label">Permissão</span>
+                <span id="task-permission-chip" class="role-badge">Tarefas</span>
+              </div>
+              <div class="org-meta-item">
+                <span class="org-meta-label">Status API</span>
+                <span id="api-status" class="api-badge api-badge--ready">
+                  <span class="api-dot"></span>
+                  API pronta
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="org-header-actions">
+            <button id="new-task-btn" class="primary-button" type="button">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Nova Tarefa
+            </button>
+            <button id="delete-project-button" class="danger-button is-hidden" type="button">Excluir projeto</button>
+          </div>
+        </header>
+
+        <!-- Acesso negado -->
+        <section id="project-access-panel" class="empty-state is-hidden">
+          <div>
+            <p class="eyebrow">Acesso</p>
+            <h2>Você não tem acesso a esse projeto.</h2>
+          </div>
+        </section>
+
+        <!-- Conteúdo do projeto -->
+        <section id="project-content" class="org-body is-hidden">
+
+          <!-- Métricas strip -->
+          <div class="metrics-strip">
+            <div class="metric-strip-item">
+              <span class="metric-strip-icon metric-strip-icon--orange">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              </span>
+              <div>
+                <strong id="tasks-stat">0</strong>
+                <span>Tarefas</span>
+              </div>
+            </div>
+            <div class="metric-strip-divider"></div>
+            <div class="metric-strip-item">
+              <span class="metric-strip-icon metric-strip-icon--green">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </span>
+              <div>
+                <strong id="project-completed-stat">0%</strong>
+                <span>Concluído</span>
+              </div>
+            </div>
+            <div class="metric-strip-divider"></div>
+            <div class="metric-strip-item">
+              <span class="metric-strip-icon metric-strip-icon--blue">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5v9a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9z" stroke="currentColor" stroke-width="1.4"/><path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              </span>
+              <div>
+                <strong id="project-org-stat">—</strong>
+                <span>Organização</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lista de tarefas -->
+          <section class="panel" aria-labelledby="tasks-title">
+            <div class="panel-heading horizontal">
+              <div>
+                <p class="eyebrow">Execução</p>
+                <h2 id="tasks-title">Tarefas</h2>
+              </div>
+              <button id="new-task-btn-2" class="ghost-button new-project-inline-btn" type="button">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+                Nova
+              </button>
+            </div>
+            <div id="task-list" class="task-table"></div>
+            <div style="margin-top:12px;">
+              <button id="load-more-tasks" class="ghost-button is-hidden" type="button">Carregar mais</button>
+            </div>
+          </section>
+        </section>
+      </main>
+    </section>
+
+    <!-- ── Modal: Nova Tarefa ──────────────────────────────────── -->
+    <dialog id="new-task-modal" class="project-modal">
+      <div class="project-modal-inner">
+        <div class="project-modal-header">
+          <div>
+            <p class="eyebrow">Execução</p>
+            <h2>Nova Tarefa</h2>
+          </div>
+          <button id="close-task-modal" class="modal-close-btn" type="button" aria-label="Fechar">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <form id="task-form" class="project-modal-form">
+          <label>
+            Nome da tarefa
+            <input id="task-name-input" type="text" minlength="3" maxlength="30" placeholder="Ex: Implementar autenticação, Revisar design…" autofocus>
+          </label>
+          <label>
+            Descrição
+            <textarea id="task-description-input" minlength="3" maxlength="120" rows="3" placeholder="Contexto, requisitos ou detalhes da tarefa"></textarea>
+          </label>
+          <label>
+            Prioridade
+            <select id="task-priority-input" required>
+              <option value="normal">Normal</option>
+              <option value="low">Baixa</option>
+              <option value="high">Alta</option>
+              <option value="very high">Muito alta</option>
+            </select>
+          </label>
+          <div class="project-modal-actions">
+            <button id="cancel-task-modal" class="ghost-button" type="button">Cancelar</button>
+            <button class="primary-button" type="submit" style="justify-content:center;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+              Criar Tarefa
+            </button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- Dialogs existentes -->
+    <dialog id="confirm-dialog" class="confirm-dialog">
+      <form method="dialog">
+        <p class="eyebrow">Confirmação</p>
+        <h2 id="confirm-title">Confirmar ação</h2>
+        <p id="confirm-message" class="muted">Essa ação não pode ser desfeita.</p>
+        <div class="dialog-actions">
+          <button class="ghost-button" value="cancel">Cancelar</button>
+          <button id="confirm-action" class="danger-button" value="confirm">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./js/app.js" defer></script>
+    <script>
+      (function() {
+        function openTaskModal() {
+          const modal = document.getElementById('new-task-modal');
+          if (modal) modal.showModal();
+        }
+        function closeTaskModal() {
+          const modal = document.getElementById('new-task-modal');
+          if (modal && modal.open) modal.close();
+        }
+
+        document.getElementById('new-task-btn')?.addEventListener('click', openTaskModal);
+        document.getElementById('new-task-btn-2')?.addEventListener('click', openTaskModal);
+        document.getElementById('close-task-modal')?.addEventListener('click', closeTaskModal);
+        document.getElementById('cancel-task-modal')?.addEventListener('click', closeTaskModal);
+
+        document.getElementById('new-task-modal')?.addEventListener('click', function(e) {
+          if (e.target === this) closeTaskModal();
+        });
+
+        document.getElementById('task-form')?.addEventListener('submit', function() {
+          setTimeout(closeTaskModal, 300);
+        });
+
+        // Exibir ID do projeto no header
+        window.addEventListener('load', function() {
+          const params = new URLSearchParams(window.location.search);
+          const projectId = params.get('id') || '';
+          const display = document.getElementById('project-id-display');
+          if (display && projectId) {
+            display.textContent = projectId.length > 16 ? projectId.slice(0, 8) + '…' + projectId.slice(-4) : projectId;
+            display.title = projectId;
+          }
+        });
+      })();
+    </script>
+  
+    <!-- __ Chat Drawer __ -->
+    <div id="chat-drawer" class="chat-drawer" aria-hidden="true">
+      <div class="chat-drawer-inner">
+        <div id="chat-org-list-view" class="chat-view">
+          <div class="chat-drawer-header">
+            <div><p class="eyebrow">Mensagens</p><h2>Chats</h2></div>
+            <button id="close-chat-drawer" class="modal-close-btn" type="button" aria-label="Fechar">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div id="chat-org-list" class="chat-org-list"></div>
+        </div>
+        <div id="chat-messages-view" class="chat-view is-hidden">
+          <div class="chat-drawer-header">
+            <button id="chat-back-btn" class="ghost-button chat-back-btn" type="button">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div style="flex:1"><p class="eyebrow">Canal geral</p><h2 id="chat-org-name" style="font-size:1rem;margin:0">—</h2></div>
+            <button id="close-chat-drawer-2" class="modal-close-btn" type="button" aria-label="Fechar">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div id="chat-messages" class="chat-messages"></div>
+          <div class="chat-input-row">
+            <input id="chat-input" type="text" placeholder="Mensagem..." maxlength="1000" autocomplete="off">
+            <button id="chat-send-btn" class="primary-button" type="button">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l3 6-3 6 12-6z" fill="currentColor"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="chat-backdrop" class="chat-backdrop"></div>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  </body>
+</html>

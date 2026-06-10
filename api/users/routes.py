@@ -6,26 +6,27 @@ import uuid
 users_bp = Blueprint("users", __name__)
 
 
-@users_bp.route("/users")
+@users_bp.route("/users/<id>")
 @jwt_required()
-def user():
-    user_id = uuid.UUID(request.args.get("id"))
+def user(id):
+    user_id = uuid.UUID(id)
     response = user_service(user_id)
     return response
 
-@users_bp.route("/users/<username>")
+@users_bp.route("/users")
 @jwt_required()
-def search_user(username):
+def search_user():
+    username = request.args.get("username")
     response = search_user_service(username)
     return response
 
-@users_bp.route("/users/<username>", methods=["PATCH"])
+@users_bp.route("/users", methods=["PATCH"])
 @jwt_required()
-def edit_user(username):
+def edit_user():
     data = request.form.copy()
     data["img"] = request.files.get("img")
     user_id = uuid.UUID(get_jwt_identity())
-    response = edit_user_service(data,username, user_id)
+    response = edit_user_service(data, user_id)
     return response
     
 @users_bp.route("/users/invites")

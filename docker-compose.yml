@@ -4,7 +4,6 @@ services:
     env_file:
     - .env
 
-    command: gunicorn --bind 0.0.0.0:5000 wsgi:app
     restart: unless-stopped
     ports:
       - "5000:5000"

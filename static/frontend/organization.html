@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Organização | TaskForge</title>
+    <link rel="icon" href="http://localhost:5000/static/icons/TaskForgeLogo.png">
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body data-page="organization">
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <section class="app-shell">
+
+      <!-- ── Sidebar ──────────────────────────────────────────── -->
+      <aside class="sidebar sidebar-clean">
+        <div class="brand-lockup sidebar-brand">
+          <img class="brand-mark" src="http://localhost:5000/static/icons/TaskForgeLogo.png" alt="TaskForge">
+          <strong class="brand-label">TaskForge</strong>
+        </div>
+
+        <nav class="page-nav" aria-label="Navegação principal">
+          <a class="nav-link" href="./dashboard.html">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".9"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/></svg>
+            </span>
+            <span class="nav-label">Organizações</span>
+          </a>
+          <a class="nav-link active" href="#">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5v9a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9z" stroke="currentColor" stroke-width="1.4"/><path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            </span>
+            <span class="nav-label">Organização</span>
+          </a>
+        
+          <button class="nav-link" id="open-chat-drawer" type="button" aria-label="Chats">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 9.5A5.5 5.5 0 018.5 15H3a1 1 0 01-1-1V9.5a5.5 5.5 0 0111 0z" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V2.5A1.5 1.5 0 016.5 1h6A1.5 1.5 0 0114 2.5V7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <span class="nav-label">Chats</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+
+        <!-- User -->
+        <div class="sidebar-user">
+          <div class="avatar-upload-wrap">
+            <span class="avatar avatar-upload" data-current-avatar>
+              <span class="avatar-upload-hint">✎</span>
+            </span>
+            <input id="pfp-upload-input" type="file" accept="image/jpeg,image/png,image/gif" class="sr-only">
+          </div>
+          <div class="sidebar-user-info">
+            <a class="profile-link" data-current-user data-current-profile-link href="#">Usuário</a>
+            <span>Conta ativa</span>
+          </div>
+          <button data-logout class="icon-menu sidebar-logout" type="button" aria-label="Sair">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10.5 5.5L13 8l-2.5 2.5M13 8H6M6 2.5H3.5A1 1 0 002.5 3.5v9a1 1 0 001 1H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- ── Main ──────────────────────────────────────────────── -->
+      <main class="workspace workspace-org">
+
+        <!-- ── Org Header ──────────────────────────────────────── -->
+        <header class="org-header-bar">
+          <div class="org-header-identity">
+            <img id="org-header-img" class="org-header-img is-hidden" alt="Imagem da organização">
+            <div class="org-header-text">
+              <p class="eyebrow">Organização</p>
+              <h1 id="org-title">Carregando…</h1>
+              <p id="org-subtitle" class="org-header-desc"></p>
+            </div>
+          </div>
+
+          <div class="org-header-meta">
+            <div class="org-meta-row">
+              <div class="org-meta-item">
+                <span class="org-meta-label">ID da organização</span>
+                <div class="org-meta-id-row">
+                  <span class="org-meta-id-value" id="org-id-display">—</span>
+                  <button id="copy-org-id" class="copy-id-btn" type="button" title="Copiar ID">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 009.5 2h-6A1.5 1.5 0 002 3.5v6A1.5 1.5 0 003.5 11H5" stroke="currentColor" stroke-width="1.5"/></svg>
+                    Copiar
+                  </button>
+                </div>
+              </div>
+              <div class="org-meta-item">
+                <span class="org-meta-label">Seu cargo</span>
+                <span id="role-chip" class="role-badge">Membro</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="org-header-actions">
+            <button id="new-project-btn" class="primary-button" type="button">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Novo Projeto
+            </button>
+            <button id="edit-org-button" class="ghost-button is-hidden" type="button">Editar</button>
+            <button id="delete-org-button" class="danger-button is-hidden" type="button">Excluir</button>
+          </div>
+        </header>
+
+        <!-- ── Acesso negado ───────────────────────────────────── -->
+        <section id="org-access-panel" class="empty-state is-hidden">
+          <div>
+            <p class="eyebrow">Acesso</p>
+            <h2>Você ainda não faz parte dessa organização.</h2>
+          </div>
+        </section>
+
+        <!-- ── Conteúdo principal ──────────────────────────────── -->
+        <section id="org-content" class="org-body is-hidden">
+
+          <!-- Métricas compactas -->
+          <div class="metrics-strip">
+            <div class="metric-strip-item">
+              <span class="metric-strip-icon metric-strip-icon--purple">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 13.5c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </span>
+              <div>
+                <strong id="members-stat">0</strong>
+                <span>Membros</span>
+              </div>
+            </div>
+            <div class="metric-strip-divider"></div>
+            <div class="metric-strip-item">
+              <span class="metric-strip-icon metric-strip-icon--blue">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              </span>
+              <div>
+                <strong id="projects-stat">0</strong>
+                <span>Projetos</span>
+              </div>
+            </div>
+            <div class="metric-strip-divider"></div>
+            <div class="metric-strip-item">
+              <span class="metric-strip-icon metric-strip-icon--green">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <div>
+                <strong id="tasks-stat">—</strong>
+                <span>Tarefas</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Layout de duas colunas ──────────────────────────── -->
+          <div class="org-layout">
+
+            <!-- COLUNA PRINCIPAL: Projetos -->
+            <div class="org-main-col">
+              <section class="panel org-projects-panel" aria-labelledby="projects-title">
+                <div class="panel-heading horizontal">
+                  <div>
+                    <p class="eyebrow">Portfólio</p>
+                    <h2 id="projects-title">Projetos</h2>
+                  </div>
+                  <button id="new-project-btn-2" class="ghost-button new-project-inline-btn" type="button">
+                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+                    Novo
+                  </button>
+                </div>
+                <div id="project-list" class="project-rows"></div>
+              </section>
+            </div>
+
+            <!-- COLUNA LATERAL: Abas Membros / Convidar / Chat -->
+            <div class="org-side-col">
+              <section class="panel org-side-tabbed" aria-label="Equipe e Chat">
+
+                <!-- Tab bar -->
+                <div class="org-side-tabs">
+                  <button class="org-side-tab is-active" data-tab="members" type="button">Membros</button>
+                  <button class="org-side-tab" data-tab="invite" type="button">Convidar</button>
+                  <button class="org-side-tab" data-tab="chat" type="button">Chat</button>
+                </div>
+
+                <!-- Tab: Membros -->
+                <div class="org-side-pane" id="tab-members">
+                  <div id="members-list" class="member-table"></div>
+                </div>
+
+                <!-- Tab: Convidar -->
+                <div class="org-side-pane is-hidden" id="tab-invite">
+                  <div id="invite-section">
+                    <div class="invite-search-wrap">
+                      <div class="invite-search-box">
+                        <svg class="invite-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <input id="invite-username-search" type="text" placeholder="Buscar por username…" autocomplete="off" class="invite-search-input">
+                        <button id="invite-search-btn" class="invite-search-trigger ghost-button" type="button">Buscar</button>
+                      </div>
+                      <div id="invite-result" class="is-hidden invite-result-card"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab: Chat -->
+                <div class="org-side-pane is-hidden" id="tab-chat">
+                  <div class="org-inline-chat">
+                    <div id="org-chat-messages" class="org-chat-messages"></div>
+                    <div class="chat-input-row">
+                      <input id="org-chat-input" type="text" placeholder="Mensagem…" maxlength="1000" autocomplete="off">
+                      <button id="org-chat-send-btn" class="primary-button" type="button">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l3 6-3 6 12-6z" fill="currentColor"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </section>
+            </div>
+          </div>
+
+        </section>
+
+      </main>
+    </section>
+
+    <!-- ── Modal: Novo Projeto ─────────────────────────────────────── -->
+    <dialog id="new-project-modal" class="project-modal">
+      <div class="project-modal-inner">
+        <div class="project-modal-header">
+          <div>
+            <p class="eyebrow">Portfólio</p>
+            <h2>Novo Projeto</h2>
+          </div>
+          <button id="close-project-modal" class="modal-close-btn" type="button" aria-label="Fechar">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <form id="project-form" class="project-modal-form">
+          <label>
+            Nome do projeto
+            <input id="project-name-input" type="text" minlength="3" maxlength="30" placeholder="Ex: Website Redesign, App Mobile…" autofocus>
+          </label>
+          <label>
+            Descrição <span class="label-optional">(opcional)</span>
+            <input id="project-description-input" type="text" maxlength="120" placeholder="Descreva brevemente o objetivo do projeto">
+          </label>
+          <div class="project-modal-actions">
+            <button id="cancel-project-modal" class="ghost-button" type="button">Cancelar</button>
+            <button class="primary-button" type="submit" style="justify-content:center;">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+              Criar Projeto
+            </button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- ── Modal: Editar Organização ──────────────────────────────── -->
+    <dialog id="edit-org-modal" class="project-modal">
+      <div class="project-modal-inner">
+        <div class="project-modal-header">
+          <div>
+            <p class="eyebrow">Configurações</p>
+            <h2>Editar Organização</h2>
+          </div>
+          <button id="close-edit-org-modal" class="modal-close-btn" type="button" aria-label="Fechar">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <form id="org-edit-form" class="project-modal-form">
+          <label>
+            Nome
+            <input id="org-edit-name" type="text" minlength="3" maxlength="30" placeholder="Novo nome">
+          </label>
+          <label>
+            Descrição
+            <input id="org-edit-description" type="text" minlength="3" maxlength="120" placeholder="Nova descrição">
+          </label>
+          <label>
+            Imagem
+            <input id="org-edit-img" type="file" accept="image/jpeg,image/png">
+          </label>
+          <div class="project-modal-actions">
+            <button id="remove-org-img-btn" class="ghost-button" type="button">Remover imagem</button>
+            <button class="primary-button" type="submit" style="justify-content:center;">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- ── Dialogs existentes (mantidos para o JS) ─────────────────── -->
+    <dialog id="confirm-dialog" class="confirm-dialog">
+      <form method="dialog">
+        <p class="eyebrow">Confirmação</p>
+        <h2 id="confirm-title">Confirmar ação</h2>
+        <p id="confirm-message" class="muted">Essa ação não pode ser desfeita.</p>
+        <div class="dialog-actions">
+          <button class="ghost-button" value="cancel">Cancelar</button>
+          <button id="confirm-action" class="danger-button" value="confirm">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="member-edit-dialog" class="confirm-dialog">
+      <form id="member-edit-form">
+        <p class="eyebrow">Membro</p>
+        <h2>Editar cargo</h2>
+        <p id="member-edit-username" class="muted"></p>
+        <label>
+          Cargo
+          <select id="member-edit-role" required>
+            <option value="member">Membro</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <div class="dialog-actions">
+          <button id="member-edit-cancel" class="ghost-button" type="button">Cancelar</button>
+          <button class="primary-button" type="submit">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./js/app.js" defer></script>
+    <script>
+      // ── Modal: Novo Projeto ─────────────────────────────────
+      (function() {
+        function openProjectModal() {
+          const modal = document.getElementById('new-project-modal');
+          if (modal) modal.showModal();
+        }
+        function closeProjectModal() {
+          const modal = document.getElementById('new-project-modal');
+          if (modal && modal.open) modal.close();
+        }
+
+        document.getElementById('new-project-btn')?.addEventListener('click', openProjectModal);
+        document.getElementById('new-project-btn-2')?.addEventListener('click', openProjectModal);
+        document.getElementById('close-project-modal')?.addEventListener('click', closeProjectModal);
+        document.getElementById('cancel-project-modal')?.addEventListener('click', closeProjectModal);
+
+        // Fechar ao clicar no backdrop
+        document.getElementById('new-project-modal')?.addEventListener('click', function(e) {
+          if (e.target === this) closeProjectModal();
+        });
+
+        // ── Modal: Editar Organização ───────────────────────────
+        function openEditOrgModal() {
+          const modal = document.getElementById('edit-org-modal');
+          if (modal) modal.showModal();
+        }
+        function closeEditOrgModal() {
+          const modal = document.getElementById('edit-org-modal');
+          if (modal && modal.open) modal.close();
+        }
+
+        // Interceptar o botão Editar do JS para abrir o modal em vez da sidebar
+        const origEditBtn = document.getElementById('edit-org-button');
+        if (origEditBtn) {
+          // Remove o listener que o app.js vai registrar e redireciona para o modal
+          origEditBtn.addEventListener('click', function(e) {
+            // Pequeno delay para deixar o app.js registrar primeiro (defer)
+          });
+        }
+
+        document.getElementById('close-edit-org-modal')?.addEventListener('click', closeEditOrgModal);
+        document.getElementById('edit-org-modal')?.addEventListener('click', function(e) {
+          if (e.target === this) closeEditOrgModal();
+        });
+
+        // Fechar modal de projeto ao enviar com sucesso (observar quando o form é limpado)
+        const projectForm = document.getElementById('project-form');
+        if (projectForm) {
+          projectForm.addEventListener('submit', function() {
+            // Dar tempo ao app.js processar; fecha após sucesso via toast observer
+            setTimeout(closeProjectModal, 300);
+          });
+        }
+
+        // Sincronizar o display do ID da organização no header
+        const copyOrgIdBtn = document.getElementById('copy-org-id');
+        const orgIdDisplay = document.getElementById('org-id-display');
+        if (copyOrgIdBtn && orgIdDisplay) {
+          // Pegar o ID da URL para exibir
+          const params = new URLSearchParams(window.location.search);
+          const orgId = params.get('id') || '';
+          if (orgId) {
+            orgIdDisplay.textContent = orgId.length > 16 ? orgId.slice(0, 8) + '…' + orgId.slice(-4) : orgId;
+            orgIdDisplay.title = orgId;
+          }
+        }
+
+        // Redirecionar o botão Editar para abrir o modal
+        document.addEventListener('DOMContentLoaded', function() {}, false);
+        // Após app.js (defer) carregar, sobrescrever o comportamento do edit-org-button
+        window.addEventListener('load', function() {
+          const editBtn = document.getElementById('edit-org-button');
+          if (editBtn) {
+            const newBtn = editBtn.cloneNode(true);
+            editBtn.parentNode.replaceChild(newBtn, editBtn);
+            newBtn.addEventListener('click', openEditOrgModal);
+          }
+          // Fechar modal de editar org ao enviar
+          const orgEditForm = document.getElementById('org-edit-form');
+          if (orgEditForm) {
+            orgEditForm.addEventListener('submit', function() {
+              setTimeout(closeEditOrgModal, 300);
+            });
+          }
+        });
+      })();
+    </script>
+  
+    <!-- __ Chat Drawer __ -->
+    <div id="chat-drawer" class="chat-drawer" aria-hidden="true">
+      <div class="chat-drawer-inner">
+        <div id="chat-org-list-view" class="chat-view">
+          <div class="chat-drawer-header">
+            <div><p class="eyebrow">Mensagens</p><h2>Chats</h2></div>
+            <button id="close-chat-drawer" class="modal-close-btn" type="button" aria-label="Fechar">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div id="chat-org-list" class="chat-org-list"></div>
+        </div>
+        <div id="chat-messages-view" class="chat-view is-hidden">
+          <div class="chat-drawer-header">
+            <button id="chat-back-btn" class="ghost-button chat-back-btn" type="button">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div style="flex:1"><p class="eyebrow">Canal geral</p><h2 id="chat-org-name" style="font-size:1rem;margin:0">—</h2></div>
+            <button id="close-chat-drawer-2" class="modal-close-btn" type="button" aria-label="Fechar">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div id="chat-messages" class="chat-messages"></div>
+          <div class="chat-input-row">
+            <input id="chat-input" type="text" placeholder="Mensagem..." maxlength="1000" autocomplete="off">
+            <button id="chat-send-btn" class="primary-button" type="button">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l3 6-3 6 12-6z" fill="currentColor"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="chat-backdrop" class="chat-backdrop"></div>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  </body>
+</html>

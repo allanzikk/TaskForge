@@ -10,3 +10,5 @@ PLANEJAMENTO.md
 executar.bat
 .gitignore
 .git
+run.py
+static/frontend/

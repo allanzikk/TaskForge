@@ -7,7 +7,7 @@ from flask import request
 from ..utils.image_utils import save_img_upload
 from extensions import db
 import os
-
+from sqlalchemy import or_, and_
 
 def search_user_service(username):
     if not username:
@@ -64,23 +64,22 @@ def invites_service(user_id):
          data=invites_json, status=200
     )
 
-def edit_user_service(data, username, user_id):
+def edit_user_service(data, user_id):
     img = data.get("img")
     name = data.get("username")
     if not (img or name):
         return error("INVALID_DATA", message="img or name are required.")
 
-    user = User.query.filter_by(username=username).first()
-    if not user:
-        return error(code="NOT_FOUND", message="user not found.", status=404)
+    user = db.session.get(User, user_id)
 
-    if user.id != user_id:
-        return error(code="ACCESS_DENIED", message="only self-editing is allowed.", status=403)
-    
     if img:
         response = save_img_upload(img, ["JPEG", "PNG", "GIF"])
         if response[0] == "error":
             return response[1]
+        
+        if user.image:
+            os.remove(user.image.img_path)
+
         image_path = response[1]
         image = Image(img_path=image_path)
         user.image = image

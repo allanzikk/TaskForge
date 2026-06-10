@@ -1,9 +1,9 @@
 from flask import Flask
-from extensions import db, bcrypt, jwt, migrate, cors
+from extensions import db, bcrypt, jwt, migrate, cors, socketio
 from dotenv import load_dotenv
 import os
 from api import api_bp
-from time import sleep
+from api.organizations.events import *
 
 def create_app():
     app = Flask(__name__)
@@ -17,19 +17,10 @@ def create_app():
     bcrypt.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
-    cors.init_app(app, origins=["https://www.taskforge.app.br"], methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
+    cors.init_app(app, origins=["https://www.taskforge.app.br", "http://127.0.0.1:5000", "http://localhost:5000"], methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
+    socketio.init_app(app, cors_allowed_origins=["http://localhost:5000", "https://www.taskforge.app.br"])
 
-
-    with app.app_context():
-        while True:
-            try:
-                db.engine.connect()
-                break
-            except Exception:
-                sleep(2)
-
-        from flask_migrate import upgrade
-        upgrade()
+    
 
     app.register_blueprint(api_bp)
     return app

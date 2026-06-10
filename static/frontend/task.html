@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tarefa | TaskForge</title>
+    <link rel="icon" href="http://localhost:5000/static/icons/TaskForgeLogo.png">
+    <link rel="stylesheet" href="./css/styles.css">
+  </head>
+  <body data-page="task">
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <section class="app-shell">
+
+      <aside class="sidebar sidebar-clean">
+        <div class="brand-lockup sidebar-brand">
+          <img class="brand-mark" src="http://localhost:5000/static/icons/TaskForgeLogo.png" alt="TaskForge">
+          <strong class="brand-label">TaskForge</strong>
+        </div>
+        <nav class="page-nav" aria-label="Navegação principal">
+          <a class="nav-link" href="./dashboard.html">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".9"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".6"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/></svg>
+            </span>
+            <span class="nav-label">Organizações</span>
+          </a>
+          <a id="org-nav-link" class="nav-link is-hidden" href="#">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </span>
+            <span class="nav-label">Organização</span>
+          </a>
+          <a id="project-nav-link" class="nav-link is-hidden" href="#">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 8h6M5 5.5h3M5 10.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <span class="nav-label">Projeto</span>
+          </a>
+          <a class="nav-link active" href="#">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 8l2 2 3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="nav-label">Tarefa</span>
+          </a>
+        
+          <button class="nav-link" id="open-chat-drawer" type="button" aria-label="Chats">
+            <span class="nav-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 9.5A5.5 5.5 0 018.5 15H3a1 1 0 01-1-1V9.5a5.5 5.5 0 0111 0z" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V2.5A1.5 1.5 0 016.5 1h6A1.5 1.5 0 0114 2.5V7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </span>
+            <span class="nav-label">Chats</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+
+        <div class="sidebar-user">
+          <div class="avatar" data-current-avatar>U</div>
+          <div class="sidebar-user-info">
+            <a class="profile-link" data-current-user data-current-profile-link href="#">Usuário</a>
+            <span>Conta ativa</span>
+          </div>
+          <button data-logout class="icon-menu sidebar-logout" type="button" aria-label="Sair">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10.5 5.5L13 8l-2.5 2.5M13 8H6M6 2.5H3.5A1 1 0 002.5 3.5v9a1 1 0 001 1H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Tarefa</p>
+            <h1 id="task-title">Carregando</h1>
+            <p id="task-subtitle" class="muted" style="font-size:0.875rem;margin-top:2px;">Detalhes e ações desta tarefa.</p>
+          </div>
+          <div class="topbar-actions">
+            <span id="api-status" class="status-chip">API pronta</span>
+            <span id="task-status-chip" class="status-chip subdued">—</span>
+          </div>
+        </header>
+
+        <section id="task-access-panel" class="empty-state is-hidden">
+          <div>
+            <p class="eyebrow">Acesso</p>
+            <h2>Você não tem acesso a essa tarefa.</h2>
+          </div>
+        </section>
+
+        <section id="task-content" class="dashboard-content is-hidden">
+          <div class="metrics-grid compact">
+            <article class="metric-card accent-orange">
+              <span class="metric-icon">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 4v6M10 14v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.6"/></svg>
+              </span>
+              <p>Prioridade</p>
+              <strong id="task-priority-stat">—</strong>
+            </article>
+            <article class="metric-card accent-blue">
+              <span class="metric-icon">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M7 10h6M7 7h3M7 13h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </span>
+              <p>Projeto</p>
+              <strong id="task-project-stat">—</strong>
+            </article>
+            <article class="metric-card accent-green">
+              <span class="metric-icon">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 10l3 3 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <p>Status</p>
+              <strong id="task-completed-stat">Pendente</strong>
+            </article>
+            <article class="metric-card accent-purple">
+              <span class="metric-icon">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h14M7 2v4M13 2v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </span>
+              <p>Criada em</p>
+              <strong id="task-date-stat">—</strong>
+            </article>
+          </div>
+
+          <div class="content-grid two-columns">
+            <section class="panel" aria-labelledby="task-detail-title">
+              <div class="panel-heading">
+                <p class="eyebrow">Detalhes</p>
+                <h2 id="task-detail-title">Descrição</h2>
+              </div>
+              <p id="task-description" class="task-description-text muted">—</p>
+            </section>
+
+            <section id="task-actions-panel" class="panel is-hidden" aria-labelledby="task-actions-title">
+              <div class="panel-heading">
+                <p class="eyebrow">Ações</p>
+                <h2 id="task-actions-title">Gerenciar</h2>
+              </div>
+              <div class="task-action-stack">
+                <button id="complete-task-btn" class="primary-button" type="button">Concluir tarefa</button>
+                <button id="edit-task-btn" class="ghost-button" type="button">Editar tarefa</button>
+                <button id="delete-task-btn" class="danger-button" type="button">Excluir tarefa</button>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <dialog id="confirm-dialog" class="confirm-dialog">
+      <form method="dialog">
+        <p class="eyebrow">Confirmação</p>
+        <h2 id="confirm-title">Confirmar ação</h2>
+        <p id="confirm-message" class="muted">Essa ação não pode ser desfeita.</p>
+        <div class="dialog-actions">
+          <button class="ghost-button" value="cancel">Cancelar</button>
+          <button id="confirm-action" class="danger-button" value="confirm">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="task-edit-dialog" class="confirm-dialog">
+      <form id="task-edit-form">
+        <p class="eyebrow">Tarefa</p>
+        <h2>Editar tarefa</h2>
+        <label>
+          Nome
+          <input id="task-edit-name" type="text" minlength="3" maxlength="30" required>
+        </label>
+        <label>
+          Descrição
+          <textarea id="task-edit-description" minlength="3" maxlength="120" rows="4" required></textarea>
+        </label>
+        <label>
+          Prioridade
+          <select id="task-edit-priority" required>
+            <option value="normal">Normal</option>
+            <option value="low">Baixa</option>
+            <option value="high">Alta</option>
+            <option value="very high">Muito alta</option>
+          </select>
+        </label>
+        <div class="dialog-actions">
+          <button id="task-edit-cancel" class="ghost-button" type="button">Cancelar</button>
+          <button class="primary-button" type="submit">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./js/app.js" defer></script>
+  
+    <!-- __ Chat Drawer __ -->
+    <div id="chat-drawer" class="chat-drawer" aria-hidden="true">
+      <div class="chat-drawer-inner">
+        <div id="chat-org-list-view" class="chat-view">
+          <div class="chat-drawer-header">
+            <div><p class="eyebrow">Mensagens</p><h2>Chats</h2></div>
+            <button id="close-chat-drawer" class="modal-close-btn" type="button" aria-label="Fechar">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div id="chat-org-list" class="chat-org-list"></div>
+        </div>
+        <div id="chat-messages-view" class="chat-view is-hidden">
+          <div class="chat-drawer-header">
+            <button id="chat-back-btn" class="ghost-button chat-back-btn" type="button">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div style="flex:1"><p class="eyebrow">Canal geral</p><h2 id="chat-org-name" style="font-size:1rem;margin:0">—</h2></div>
+            <button id="close-chat-drawer-2" class="modal-close-btn" type="button" aria-label="Fechar">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div id="chat-messages" class="chat-messages"></div>
+          <div class="chat-input-row">
+            <input id="chat-input" type="text" placeholder="Mensagem..." maxlength="1000" autocomplete="off">
+            <button id="chat-send-btn" class="primary-button" type="button">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l3 6-3 6 12-6z" fill="currentColor"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="chat-backdrop" class="chat-backdrop"></div>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  </body>
+</html>
