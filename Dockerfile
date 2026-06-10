@@ -10,4 +10,5 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["sh", "-c", "gunicorn -b 0.0.0.0:$PORT wsgi:app"]
+RUN chmod +x entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]
