@@ -61,11 +61,11 @@ function init() {
 // ── Page initializers ─────────────────────────────────────
 
 function initRedirect() {
-  goTo(appState.token ? "dashboard.html" : "login.html", true);
+  goTo(appState.token ? "/dashboard" : "/login", true);
 }
 
 function initLogin() {
-  if (appState.token) { goTo("dashboard.html", true); return; }
+  if (appState.token) { goTo("/dashboard", true); return; }
 
   $("#login-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -81,13 +81,13 @@ function initLogin() {
       });
       saveSession(readData(payload), username);
       toast("Sessão iniciada.", "success");
-      goTo("dashboard.html");
+      goTo("/dashboard");
     });
   });
 }
 
 function initRegister() {
-  if (appState.token) { goTo("dashboard.html", true); return; }
+  if (appState.token) { goTo("/dashboard", true); return; }
 
   $("#register-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -108,7 +108,7 @@ function initRegister() {
       });
       saveSession(readData(payload), username);
       toast("Conta criada.", "success");
-      goTo("dashboard.html");
+      goTo("/dashboard");
     });
   });
 }
@@ -241,7 +241,7 @@ function renderOrgCards(orgs) {
   orgs.forEach((org) => {
     const card = document.createElement("a");
     card.className = "org-card";
-    card.href = `./organization.html?id=${encodeURIComponent(org.id)}`;
+    card.href = `/organization?id=${encodeURIComponent(org.id)}`;
 
     const imgEl = document.createElement("span");
     imgEl.className = "org-card-img";
@@ -373,7 +373,7 @@ function renderOrgCards(orgs, { label = "" } = {}) {
     // ── Action ──
     const access = document.createElement("a");
     access.className = "org-card-action";
-    access.href = `./organization.html?id=${encodeURIComponent(org.id)}`;
+    access.href = `/organization?id=${encodeURIComponent(org.id)}`;
     access.innerHTML = `Acessar organização <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
     card.append(header, divider, stats, access);
@@ -563,7 +563,7 @@ function renderProjectPage() {
 
   const orgLink = $("#org-nav-link");
   if (orgLink && (project.org_id || org?.id)) {
-    orgLink.href = `./organization.html?id=${encodeURIComponent(project.org_id || org.id)}`;
+    orgLink.href = `/organization?id=${encodeURIComponent(project.org_id || org.id)}`;
     orgLink.classList.remove("is-hidden");
   }
 
@@ -623,14 +623,14 @@ async function loadTaskPage() {
   if (projectId) {
     const link = $("#project-nav-link");
     if (link) {
-      link.href = `./project.html?id=${encodeURIComponent(projectId)}${orgId ? `&org=${encodeURIComponent(orgId)}` : ""}`;
+      link.href = `/project?id=${encodeURIComponent(projectId)}${orgId ? `&org=${encodeURIComponent(orgId)}` : ""}`;
       link.classList.remove("is-hidden");
     }
   }
   if (orgId) {
     const link = $("#org-nav-link");
     if (link) {
-      link.href = `./organization.html?id=${encodeURIComponent(orgId)}`;
+      link.href = `/organization?id=${encodeURIComponent(orgId)}`;
       link.classList.remove("is-hidden");
     }
   }
@@ -798,7 +798,7 @@ function renderProjectTasks(container, tasks, options) {
 function createProjectRow(project, { orgId, index = 0 }) {
   const link = document.createElement("a");
   link.className = "project-row";
-  link.href = `./project.html?id=${encodeURIComponent(project.id)}&org=${encodeURIComponent(orgId)}`;
+  link.href = `/project?id=${encodeURIComponent(project.id)}&org=${encodeURIComponent(orgId)}`;
 
   const icon = document.createElement("span");
   icon.className = "row-icon";
@@ -847,7 +847,7 @@ function createMemberLine(member, { canEdit = false } = {}) {
   title.className = "row-title";
   const name = document.createElement("a");
   name.className = "member-profile-link";
-  name.href = `./profile.html?u=${encodeURIComponent(member.username)}`;
+  name.href = `/profile?u=${encodeURIComponent(member.username)}`;
   name.textContent = member.username || "Usuário";
   const role = document.createElement("span");
   role.textContent = member.role || "member";
@@ -914,7 +914,7 @@ function buildTaskUrl(task) {
   const params = new URLSearchParams({ id: task.id });
   if (projectId) params.set("project", projectId);
   if (orgId) params.set("org", orgId);
-  return `./task.html?${params.toString()}`;
+  return `/task?${params.toString()}`;
 }
 
 // ── Handlers ──────────────────────────────────────────────
@@ -1006,7 +1006,7 @@ async function handleCreateOrganization(event) {
     nameInput.value = "";
     if (descInput) descInput.value = "";
     if (imgInput) imgInput.value = "";
-    if (orgId) goTo(`organization.html?id=${encodeURIComponent(orgId)}`);
+    if (orgId) goTo(`/organization?id=${encodeURIComponent(orgId)}`);
     else await loadDashboard();
   });
 }
@@ -1039,7 +1039,7 @@ function renderUserSearchResults(container, users) {
   users.forEach((user) => {
     const link = document.createElement("a");
     link.className = "user-search-row";
-    link.href = `./profile.html?u=${encodeURIComponent(user.username)}`;
+    link.href = `/profile?u=${encodeURIComponent(user.username)}`;
 
     const avatar = document.createElement("span");
     avatar.className = "avatar avatar-sm";
@@ -1188,7 +1188,7 @@ async function handleCreateProject(event) {
     const data = readData(payload);
     const projectId = stringify(data.id || data.project_id);
     toast("Projeto criado.", "success");
-    if (projectId) goTo(`project.html?id=${encodeURIComponent(projectId)}&org=${encodeURIComponent(orgId)}`);
+    if (projectId) goTo(`/project?id=${encodeURIComponent(projectId)}&org=${encodeURIComponent(orgId)}`);
     else { input.value = ""; await loadOrganizationPage(); }
   });
 }
@@ -1207,7 +1207,7 @@ async function handleDeleteOrganization() {
   await runWithStatus($("#delete-org-button"), async () => {
     await apiRequest(`/organizations/${encodeURIComponent(org.id)}`, { method: "DELETE" });
     toast("Organização excluída.", "success");
-    goTo("dashboard.html");
+    goTo("/dashboard");
   });
 }
 
@@ -1343,7 +1343,7 @@ async function handleDeleteTask(task) {
       const orgId = getQueryParam("org");
       if (projectId) params.set("id", projectId);
       if (orgId) params.set("org", orgId);
-      goTo(`./project.html?${params.toString()}`);
+      goTo(`/project?${params.toString()}`);
     } else {
       await loadProjectPage();
     }
@@ -1464,7 +1464,7 @@ function renderSessionLabels() {
     node.textContent = username;
   });
   document.querySelectorAll("[data-current-profile-link]").forEach((node) => {
-    node.href = `./profile.html?u=${encodeURIComponent(username)}`;
+    node.href = `/profile?u=${encodeURIComponent(username)}`;
   });
   renderCurrentUserAvatar();
 }
@@ -1748,7 +1748,7 @@ function handleError(error) {
   if (isAuthFailure(error)) {
     toast("Sessão expirada. Entre novamente.", "error");
     clearSession();
-    goTo("login.html");
+    goTo("/login");
     return;
   }
   toast(error?.message || "Algo deu errado.", "error");
@@ -1776,7 +1776,7 @@ function saveSession(data, fallbackUsername) {
   localStorage.setItem(storageKeys.user, JSON.stringify(appState.user));
 }
 
-function logout() { clearSession(); goTo("login.html"); }
+function logout() { clearSession(); goTo("/login"); }
 
 function clearSession() {
   appState.token = "";
@@ -1787,7 +1787,7 @@ function clearSession() {
 
 function requireAuth() {
   if (appState.token) return true;
-  goTo("login.html", true);
+  goTo("/login", true);
   return false;
 }
 
