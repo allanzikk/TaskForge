@@ -10,7 +10,7 @@ services:
     depends_on:
     - db
     volumes:
-    - uploads_data:/app/static/uploads
+    - ./static/uploads:/app/static/uploads
 
   db:
     image: postgres:17
@@ -23,4 +23,4 @@ services:
       - postgres_data:/var/lib/postgresql/data
 volumes:
   postgres_data:
-  uploads_data:
+  ./static/uploads:
