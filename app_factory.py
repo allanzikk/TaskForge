@@ -24,7 +24,7 @@ def create_app():
     jwt.init_app(app)
     migrate.init_app(app, db)
     cors.init_app(app, origins=["https://www.taskforge.app.br", "http://127.0.0.1:5000", "http://localhost:5000"], methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
-    socketio.init_app(app, cors_allowed_origins=["http://localhost:5000", "https://www.taskforge.app.br"])
+    socketio.init_app(app, async_mode='gevent', cors_allowed_origins=["http://localhost:5000", "https://www.taskforge.app.br"])
 
     
 
