@@ -5,13 +5,18 @@ from ..utils.project_utils import get_project_by_name, get_project_by_id
 from ..utils.org_utils import verify_org_member, get_org_by_id
 from api.utils.responses import success, error
 from flask import request
-
+from uuid import UUID
 
 
 
 
 
 def org_projects_service(org_id):
+    try:
+        org_id = UUID(org_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     org = get_org_by_id(org_id)
     if not org:
         return error("NOT_FOUND", "org not found.", status=404)
@@ -28,6 +33,12 @@ def org_projects_service(org_id):
     return projects_json, 200
 
 def create_project_service(org_id, data, user_id):
+    try:
+        org_id = UUID(org_id)
+        user_id = UUID(user_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     name = data.get("name")
     if not name:
         return error("INVALID_DATA", "name can't be empty.")
@@ -70,6 +81,12 @@ def create_project_service(org_id, data, user_id):
     )
 
 def project_service(project_id, user_id):
+    try:
+        project_id = UUID(project_id)
+        user_id = UUID(user_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     project = get_project_by_id(project_id)
     if not project:
         return error(code="NOT_FOUND", message="project not found.", status=404)
@@ -92,6 +109,12 @@ def project_service(project_id, user_id):
     })
 
 def delete_project_service(project_id, user_id):
+    try:
+        project_id = UUID(project_id)
+        user_id = UUID(user_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     project = db.session.get(Project, project_id)
     if not project:
         return error(code="NOT_FOUND", message="project not found.", status=404)

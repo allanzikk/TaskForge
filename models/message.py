@@ -11,4 +11,4 @@ class Message(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = db.relationship("User")
-    org = db.relationship("Organization")
+    org = db.relationship("Organization", back_populates="messages")

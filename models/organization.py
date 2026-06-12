@@ -13,3 +13,4 @@ class Organization(db.Model):
     members = db.relationship("Member", back_populates="org", cascade="all, delete-orphan")
     projects = db.relationship("Project", back_populates="org", cascade="all, delete-orphan")
     image = db.relationship("Image", cascade="all, delete-orphan", single_parent=True, uselist=False)
+    messages = db.relationship("Message", back_populates="org", cascade="all, delete-orphan")

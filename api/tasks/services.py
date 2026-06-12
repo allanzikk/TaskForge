@@ -4,8 +4,16 @@ from ..utils.org_utils import verify_org_member
 from ..utils.project_utils import get_project_by_id
 from models.task import Task
 from sqlalchemy import and_, or_
+from uuid import UUID
 
 def tasks_service(project_id, user_id, cursor_created_at, cursor_id, limit):
+    try:
+        project_id = UUID(project_id)
+        user_id = UUID(user_id)
+        cursor_id = UUID(cursor_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     project = get_project_by_id(project_id)
     if not project:
         return error(code="NOT_FOUND", message="project not found.", status=404)
@@ -23,7 +31,7 @@ def tasks_service(project_id, user_id, cursor_created_at, cursor_id, limit):
                 return error(code="INVALID_DATA", message="limit must be between 5-20.")
         else:
             limit = 10
-    except ValueError:
+    except (ValueError, TypeError):
         return error(code="INVALID_DATA", message="limit must be a number.")
     
     query = Task.query.filter_by(project_id=project_id)
@@ -58,6 +66,12 @@ def tasks_service(project_id, user_id, cursor_created_at, cursor_id, limit):
     return success(data={"tasks":tasks_json, "next_cursor": next_cursor})
 
 def task_service(task_id, user_id):
+    try:
+        user_id = UUID(user_id)
+        task_id = UUID(task_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     task = db.session.get(Task, task_id)
     if not task:
         return error(code="NOT_FOUND", message="task not found.", status=404)
@@ -80,6 +94,12 @@ def task_service(task_id, user_id):
 
 
 def create_task_service(data, project_id, user_id):
+    try:
+        project_id = UUID(project_id)
+        user_id = UUID(user_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     project = get_project_by_id(project_id)
     if not project:
         return error(code="NOT_FOUND", message="project not found.", status=404)
@@ -126,6 +146,12 @@ def create_task_service(data, project_id, user_id):
     )
 
 def delete_task_service(task_id, user_id):
+    try:
+        user_id = UUID(user_id)
+        task_id = UUID(task_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     task = db.session.get(Task, task_id)
     if not task:
         return error(code="NOT_FOUND", message="task not found.", status=404)
@@ -150,6 +176,12 @@ def delete_task_service(task_id, user_id):
     return success(message="done.")
 
 def edit_task_service(task_id, user_id, data):
+    try:
+        user_id = UUID(user_id)
+        task_id = UUID(task_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     task = db.session.get(Task, task_id)
     if not task:
         return error(code="NOT_FOUND", message="task not found.", status=404)
@@ -194,6 +226,12 @@ def edit_task_service(task_id, user_id, data):
     )
 
 def complete_task_service(task_id, user_id):
+    try:
+        user_id = UUID(user_id)
+        task_id = UUID(task_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     task = db.session.get(Task, task_id)
     if not task:
         return error(code="NOT_FOUND", message="task not found.", status=404)

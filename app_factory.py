@@ -5,6 +5,7 @@ import os
 from api import api_bp
 from api.organizations.events import *
 from werkzeug.middleware.proxy_fix import ProxyFix
+from datetime import timedelta
 
 def create_app():
     app = Flask(__name__)
@@ -13,6 +14,8 @@ def create_app():
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
     app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "dev-jwt-key")
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("SQLALCHEMY_DATABASE_URI")
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=15)
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 

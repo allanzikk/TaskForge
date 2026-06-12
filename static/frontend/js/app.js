@@ -1,10 +1,16 @@
 const storageKeys = {
   token: "taskforge.token",
+  refreshToken: "taskforge.refreshToken",
   user: "taskforge.user",
   apiBase: "taskforge.apiBase",
 };
 
 const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+function frontendPath(page, params = "") {
+  const base = isDev ? `/static/frontend/${page}.html` : `/${page}`;
+  return params ? `${base}?${params}` : base;
+}
 
 const defaultApiBase = isDev
   ? "http://127.0.0.1:5000"
@@ -17,6 +23,7 @@ const defaultSocketBase = isDev
 const page = document.body.dataset.page || "redirect";
 const appState = {
   token: localStorage.getItem(storageKeys.token) || "",
+  refreshToken: localStorage.getItem(storageKeys.refreshToken) || "",
   user: readJson(storageKeys.user),
   organizations: [],
   invites: [],
@@ -35,6 +42,9 @@ const appState = {
     socket: null,
     currentOrgId: null,
     currentOrgName: null,
+    oldestMessageId: null,
+    hasMoreMessages: false,
+    loadingMore: false,
   },
 };
 
@@ -61,11 +71,11 @@ function init() {
 // ── Page initializers ─────────────────────────────────────
 
 function initRedirect() {
-  goTo(appState.token ? "/dashboard" : "/login", true);
+  goTo(appState.token ? frontendPath("dashboard") : frontendPath("login"), true);
 }
 
 function initLogin() {
-  if (appState.token) { goTo("/dashboard", true); return; }
+  if (appState.token) { goTo(frontendPath("dashboard"), true); return; }
 
   $("#login-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -81,13 +91,13 @@ function initLogin() {
       });
       saveSession(readData(payload), username);
       toast("Sessão iniciada.", "success");
-      goTo("/dashboard");
+      goTo(frontendPath("dashboard"));
     });
   });
 }
 
 function initRegister() {
-  if (appState.token) { goTo("/dashboard", true); return; }
+  if (appState.token) { goTo(frontendPath("dashboard"), true); return; }
 
   $("#register-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -108,7 +118,7 @@ function initRegister() {
       });
       saveSession(readData(payload), username);
       toast("Conta criada.", "success");
-      goTo("/dashboard");
+      goTo(frontendPath("dashboard"));
     });
   });
 }
@@ -241,7 +251,7 @@ function renderOrgCards(orgs) {
   orgs.forEach((org) => {
     const card = document.createElement("a");
     card.className = "org-card";
-    card.href = `/organization?id=${encodeURIComponent(org.id)}`;
+    card.href = frontendPath("organization", `id=${encodeURIComponent(org.id)}`);
 
     const imgEl = document.createElement("span");
     imgEl.className = "org-card-img";
@@ -373,7 +383,7 @@ function renderOrgCards(orgs, { label = "" } = {}) {
     // ── Action ──
     const access = document.createElement("a");
     access.className = "org-card-action";
-    access.href = `/organization?id=${encodeURIComponent(org.id)}`;
+    access.href = frontendPath("organization", `id=${encodeURIComponent(org.id)}`);
     access.innerHTML = `Acessar organização <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
     card.append(header, divider, stats, access);
@@ -401,7 +411,7 @@ async function loadOrganizationPage() {
     apiRequest(`/organizations/${encodeURIComponent(orgId)}`).catch((e) => {
       if (isAuthFailure(e)) throw e; return null;
     }),
-    apiRequest(`/organizations/${encodeURIComponent(orgId)}/projects`).catch((e) => {
+    apiRequest(`organizations/${encodeURIComponent(orgId)}/projects`).catch((e) => {
       if (isAuthFailure(e)) throw e; return [];
     }),
     apiRequest(`/organizations/${encodeURIComponent(orgId)}/members`).catch((e) => {
@@ -563,7 +573,7 @@ function renderProjectPage() {
 
   const orgLink = $("#org-nav-link");
   if (orgLink && (project.org_id || org?.id)) {
-    orgLink.href = `/organization?id=${encodeURIComponent(project.org_id || org.id)}`;
+    orgLink.href = frontendPath("organization", `id=${encodeURIComponent(project.org_id || org.id)}`);
     orgLink.classList.remove("is-hidden");
   }
 
@@ -623,14 +633,14 @@ async function loadTaskPage() {
   if (projectId) {
     const link = $("#project-nav-link");
     if (link) {
-      link.href = `/project?id=${encodeURIComponent(projectId)}${orgId ? `&org=${encodeURIComponent(orgId)}` : ""}`;
+      link.href = frontendPath("project", `id=${encodeURIComponent(projectId)}${orgId ? `&org=${encodeURIComponent(orgId)}` : ""}`);
       link.classList.remove("is-hidden");
     }
   }
   if (orgId) {
     const link = $("#org-nav-link");
     if (link) {
-      link.href = `/organization?id=${encodeURIComponent(orgId)}`;
+      link.href = frontendPath("organization", `id=${encodeURIComponent(orgId)}`);
       link.classList.remove("is-hidden");
     }
   }
@@ -798,7 +808,7 @@ function renderProjectTasks(container, tasks, options) {
 function createProjectRow(project, { orgId, index = 0 }) {
   const link = document.createElement("a");
   link.className = "project-row";
-  link.href = `/project?id=${encodeURIComponent(project.id)}&org=${encodeURIComponent(orgId)}`;
+  link.href = frontendPath("project", `id=${encodeURIComponent(project.id)}&org=${encodeURIComponent(orgId)}`);
 
   const icon = document.createElement("span");
   icon.className = "row-icon";
@@ -847,7 +857,7 @@ function createMemberLine(member, { canEdit = false } = {}) {
   title.className = "row-title";
   const name = document.createElement("a");
   name.className = "member-profile-link";
-  name.href = `/profile?u=${encodeURIComponent(member.username)}`;
+  name.href = frontendPath("profile", `u=${encodeURIComponent(member.username)}`);
   name.textContent = member.username || "Usuário";
   const role = document.createElement("span");
   role.textContent = member.role || "member";
@@ -1006,7 +1016,7 @@ async function handleCreateOrganization(event) {
     nameInput.value = "";
     if (descInput) descInput.value = "";
     if (imgInput) imgInput.value = "";
-    if (orgId) goTo(`/organization?id=${encodeURIComponent(orgId)}`);
+    if (orgId) goTo(frontendPath("dashboard"));
     else await loadDashboard();
   });
 }
@@ -1039,7 +1049,7 @@ function renderUserSearchResults(container, users) {
   users.forEach((user) => {
     const link = document.createElement("a");
     link.className = "user-search-row";
-    link.href = `/profile?u=${encodeURIComponent(user.username)}`;
+    link.href = frontendPath("profile", `u=${encodeURIComponent(user.username)}`);
 
     const avatar = document.createElement("span");
     avatar.className = "avatar avatar-sm";
@@ -1188,7 +1198,7 @@ async function handleCreateProject(event) {
     const data = readData(payload);
     const projectId = stringify(data.id || data.project_id);
     toast("Projeto criado.", "success");
-    if (projectId) goTo(`/project?id=${encodeURIComponent(projectId)}&org=${encodeURIComponent(orgId)}`);
+    if (projectId) goTo(frontendPath("project", `id=${encodeURIComponent(projectId)}&org=${encodeURIComponent(orgId)}`));
     else { input.value = ""; await loadOrganizationPage(); }
   });
 }
@@ -1207,7 +1217,7 @@ async function handleDeleteOrganization() {
   await runWithStatus($("#delete-org-button"), async () => {
     await apiRequest(`/organizations/${encodeURIComponent(org.id)}`, { method: "DELETE" });
     toast("Organização excluída.", "success");
-    goTo("/dashboard");
+    goTo(frontendPath("dashboard"));
   });
 }
 
@@ -1343,7 +1353,7 @@ async function handleDeleteTask(task) {
       const orgId = getQueryParam("org");
       if (projectId) params.set("id", projectId);
       if (orgId) params.set("org", orgId);
-      goTo(`/project?${params.toString()}`);
+      goTo(frontendPath("project", `${params.toString()}`));
     } else {
       await loadProjectPage();
     }
@@ -1464,7 +1474,7 @@ function renderSessionLabels() {
     node.textContent = username;
   });
   document.querySelectorAll("[data-current-profile-link]").forEach((node) => {
-    node.href = `/profile?u=${encodeURIComponent(username)}`;
+    node.href = frontendPath("profile", `u=${encodeURIComponent(username)}`);
   });
   renderCurrentUserAvatar();
 }
@@ -1482,11 +1492,50 @@ function bindCommonControls() {
     toast("Conexão salva.", "success");
   });
 
+  document.querySelectorAll("[data-nav-page]").forEach((el) => {
+    const pg = el.dataset.navPage;
+    el.href = frontendPath(pg);
+  });
+
   document.querySelectorAll("[data-logout]").forEach((btn) => btn.addEventListener("click", logout));
   initChatDrawer();
 }
 
 async function apiRequest(path, options = {}) {
+  const response = await makeRequest(path, options);
+  const payload = await parseResponse(response);
+
+  if (response.status === 401 && !options.skipAuth && !options._isRetry) {
+    const refreshed = await tryRefresh();
+    if (refreshed) {
+      const retryResponse = await makeRequest(path, { ...options, _isRetry: true });
+      const retryPayload = await parseResponse(retryResponse);
+      if (!retryResponse.ok) {
+        const error = new Error(extractErrorMessage(retryPayload, retryResponse.status));
+        error.status = retryResponse.status;
+        error.payload = retryPayload;
+        throw error;
+      }
+      return retryPayload;
+    }
+    // refresh falhou — sessão expirada de verdade
+    const error = new Error(extractErrorMessage(payload, response.status));
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+
+  if (!response.ok) {
+    const error = new Error(extractErrorMessage(payload, response.status));
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+
+  return payload;
+}
+
+async function makeRequest(path, options = {}) {
   const url = `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
   const headers = new Headers(options.headers || {});
   const isFormData = options.body instanceof FormData;
@@ -1498,22 +1547,40 @@ async function apiRequest(path, options = {}) {
     headers.set("Authorization", `Bearer ${appState.token}`);
   }
 
-  const response = await fetch(url, {
+  return fetch(url, {
     method: options.method || "GET",
     headers,
     body: isFormData ? options.body : options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
+}
 
-  const payload = await parseResponse(response);
+async function tryRefresh() {
+  const refreshToken = appState.refreshToken;
+  if (!refreshToken) return false;
 
-  if (!response.ok) {
-    const error = new Error(extractErrorMessage(payload, response.status));
-    error.status = response.status;
-    error.payload = payload;
-    throw error;
+  try {
+    const url = `${getApiBase()}/refresh`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${refreshToken}` },
+    });
+
+    if (!response.ok) {
+      clearSession();
+      return false;
+    }
+
+    const data = await response.json();
+    const newToken = data.access_token || "";
+    if (!newToken) { clearSession(); return false; }
+
+    appState.token = newToken;
+    localStorage.setItem(storageKeys.token, newToken);
+    return true;
+  } catch {
+    clearSession();
+    return false;
   }
-
-  return payload;
 }
 
 async function parseResponse(response) {
@@ -1748,7 +1815,7 @@ function handleError(error) {
   if (isAuthFailure(error)) {
     toast("Sessão expirada. Entre novamente.", "error");
     clearSession();
-    goTo("/login");
+    goTo(frontendPath("login"));
     return;
   }
   toast(error?.message || "Algo deu errado.", "error");
@@ -1764,30 +1831,35 @@ function isAuthFailure(error) {
 
 function saveSession(data, fallbackUsername) {
   const token = data.access_token || "";
+  const refreshToken = data.refresh_token || "";
   const user = data.user || { username: fallbackUsername };
   if (!token) throw new Error("Token de acesso não veio na resposta.");
   appState.token = token;
+  appState.refreshToken = refreshToken;
   appState.user = {
     id: stringify(user.id),
     username: stringify(user.username || fallbackUsername),
     pfp_url: stringify(user.pfp_url || ""),
   };
   localStorage.setItem(storageKeys.token, appState.token);
+  if (refreshToken) localStorage.setItem(storageKeys.refreshToken, refreshToken);
   localStorage.setItem(storageKeys.user, JSON.stringify(appState.user));
 }
 
-function logout() { clearSession(); goTo("/login"); }
+function logout() { clearSession(); goTo(frontendPath("login")); }
 
 function clearSession() {
   appState.token = "";
+  appState.refreshToken = "";
   appState.user = null;
   localStorage.removeItem(storageKeys.token);
+  localStorage.removeItem(storageKeys.refreshToken);
   localStorage.removeItem(storageKeys.user);
 }
 
 function requireAuth() {
   if (appState.token) return true;
-  goTo("/login", true);
+  goTo(frontendPath("login"), true);
   return false;
 }
 
@@ -1995,6 +2067,9 @@ function renderChatOrgList() {
 function openOrgChat(org) {
   appState.chat.currentOrgId = org.id;
   appState.chat.currentOrgName = org.name;
+  appState.chat.oldestMessageId = null;
+  appState.chat.hasMoreMessages = false;
+  appState.chat.loadingMore = false;
 
   document.getElementById("chat-org-name").textContent = org.name;
   document.getElementById("chat-messages").innerHTML = "";
@@ -2018,16 +2093,61 @@ function renderChatHistory(data) {
   const container = document.getElementById("chat-messages");
   if (!container) return;
   container.innerHTML = "";
-  (data.messages || []).forEach((msg) => appendChatMessage(msg));
+  const messages = (data.messages || []).reverse();
+  messages.forEach((msg) => appendChatMessage(msg));
   container.scrollTop = container.scrollHeight;
+
+  if (messages.length > 0) {
+    appState.chat.oldestMessageId = messages[0].id;
+  }
+  appState.chat.hasMoreMessages = Boolean(data.has_more);
+  bindChatScrollPagination(container);
 }
 
-function appendChatMessage(msg) {
+async function loadOlderMessages() {
+  const orgId = appState.chat.currentOrgId;
+  if (!orgId || !appState.chat.hasMoreMessages || appState.chat.loadingMore) return;
+
+  appState.chat.loadingMore = true;
+  try {
+    const params = new URLSearchParams({ limit: "30" });
+    if (appState.chat.oldestMessageId) params.set("before_id", appState.chat.oldestMessageId);
+    const payload = await apiRequest(`/organizations/${encodeURIComponent(orgId)}/messages?${params.toString()}`);
+    const data = payload?.data || payload || {};
+    const messages = Array.isArray(data.messages) ? data.messages : [];
+
+    const container = document.getElementById("chat-messages");
+    if (!container || !messages.length) return;
+
+    const prevHeight = container.scrollHeight;
+    messages.forEach((msg) => prependChatMessage(msg));
+    container.scrollTop = container.scrollHeight - prevHeight;
+
+    if (messages.length > 0) appState.chat.oldestMessageId = messages[messages.length - 1].id;
+    appState.chat.hasMoreMessages = Boolean(data.has_more);
+  } catch (err) {
+    toast("Erro ao carregar mensagens antigas.", "error");
+  } finally {
+    appState.chat.loadingMore = false;
+  }
+}
+
+function bindChatScrollPagination(container) {
+  container.removeEventListener("scroll", container._onScroll);
+  container._onScroll = () => {
+    if (container.scrollTop < 80) loadOlderMessages();
+  };
+  container.addEventListener("scroll", container._onScroll);
+}
+
+function prependChatMessage(msg) {
   const container = document.getElementById("chat-messages");
   if (!container) return;
+  const item = buildChatMessageEl(msg);
+  container.prepend(item);
+}
 
-  const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
-
+function buildChatMessageEl(msg) {
   const item = document.createElement("div");
   item.className = "chat-msg";
 
@@ -2061,8 +2181,14 @@ function appendChatMessage(msg) {
 
   body.append(meta, content);
   item.append(avatar, body);
-  container.append(item);
+  return item;
+}
 
+function appendChatMessage(msg) {
+  const container = document.getElementById("chat-messages");
+  if (!container) return;
+  const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+  container.append(buildChatMessageEl(msg));
   if (isAtBottom) container.scrollTop = container.scrollHeight;
 }
 
@@ -2124,6 +2250,9 @@ function initOrgInlineChat() {
 
   if (appState.chat.currentOrgId !== orgId) {
     appState.chat.currentOrgId = orgId;
+    appState.chat.oldestMessageId = null;
+    appState.chat.hasMoreMessages = false;
+    appState.chat.loadingMore = false;
     document.getElementById("org-chat-messages").innerHTML = "";
     appState.chat.socket.emit("join_org_chat", {
       access_token: appState.token,
@@ -2156,49 +2285,58 @@ function renderOrgChatHistory(data) {
   const container = document.getElementById("org-chat-messages");
   if (!container) return;
   container.innerHTML = "";
-  (data.messages || []).forEach((msg) => appendOrgChatMessage(msg));
+  const messages = (data.messages || []).reverse();
+  messages.forEach((msg) => appendOrgChatMessage(msg));
   container.scrollTop = container.scrollHeight;
+
+  if (messages.length > 0) appState.chat.oldestMessageId = messages[0].id;
+  appState.chat.hasMoreMessages = Boolean(data.has_more);
+  bindOrgChatScrollPagination(container);
 }
 
 function appendOrgChatMessage(msg) {
   const container = document.getElementById("org-chat-messages");
   if (!container) return;
   const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
-
-  const item = document.createElement("div");
-  item.className = "chat-msg";
-
-  const avatar = document.createElement("span");
-  avatar.className = "chat-msg-avatar";
-  if (msg.pfp_url) {
-    const img = document.createElement("img");
-    img.src = msg.pfp_url;
-    img.alt = msg.username;
-    avatar.append(img);
-  } else {
-    avatar.textContent = initials(msg.username || "U");
-  }
-
-  const body = document.createElement("div");
-  body.className = "chat-msg-body";
-
-  const meta = document.createElement("div");
-  meta.className = "chat-msg-meta";
-  const username = document.createElement("span");
-  username.className = "chat-msg-username";
-  username.textContent = msg.username || "Usuário";
-  const time = document.createElement("span");
-  time.className = "chat-msg-time";
-  time.textContent = formatChatTime(msg.created_at);
-  meta.append(username, time);
-
-  const content = document.createElement("p");
-  content.className = "chat-msg-content";
-  content.textContent = msg.content;
-
-  body.append(meta, content);
-  item.append(avatar, body);
-  container.append(item);
-
+  container.append(buildChatMessageEl(msg));
   if (isAtBottom) container.scrollTop = container.scrollHeight;
+}
+
+async function loadOlderOrgMessages() {
+  const orgId = appState.chat.currentOrgId;
+  if (!orgId || !appState.chat.hasMoreMessages || appState.chat.loadingMore) return;
+
+  appState.chat.loadingMore = true;
+  try {
+    const params = new URLSearchParams({ limit: "30" });
+    if (appState.chat.oldestMessageId) params.set("before_id", appState.chat.oldestMessageId);
+    const payload = await apiRequest(`/organizations/${encodeURIComponent(orgId)}/messages?${params.toString()}`);
+    const data = payload?.data || payload || {};
+    const messages = Array.isArray(data.messages) ? data.messages : [];
+
+    const container = document.getElementById("org-chat-messages");
+    if (!container || !messages.length) return;
+
+    const prevHeight = container.scrollHeight;
+    messages.forEach((msg) => {
+      const item = buildChatMessageEl(msg);
+      container.prepend(item);
+    });
+    container.scrollTop = container.scrollHeight - prevHeight;
+
+    if (messages.length > 0) appState.chat.oldestMessageId = messages[messages.length - 1].id;
+    appState.chat.hasMoreMessages = Boolean(data.has_more);
+  } catch (err) {
+    toast("Erro ao carregar mensagens antigas.", "error");
+  } finally {
+    appState.chat.loadingMore = false;
+  }
+}
+
+function bindOrgChatScrollPagination(container) {
+  container.removeEventListener("scroll", container._onScroll);
+  container._onScroll = () => {
+    if (container.scrollTop < 80) loadOlderOrgMessages();
+  };
+  container.addEventListener("scroll", container._onScroll);
 }

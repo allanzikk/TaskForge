@@ -8,6 +8,7 @@ from ..utils.image_utils import save_img_upload
 from extensions import db
 import os
 from sqlalchemy import or_, and_
+from uuid import UUID
 
 def search_user_service(username):
     if not username:
@@ -25,6 +26,11 @@ def search_user_service(username):
     )
 
 def user_service(user_id):
+    try:
+        user_id = UUID(user_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     if not user_id:
         return error(code="INVALID_DATA", message="user id is required.")
     user = db.session.get(User, user_id)
@@ -48,6 +54,11 @@ def user_service(user_id):
     })
 
 def invites_service(user_id):
+    try:
+        user_id = UUID(user_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     invites = Invite.query.filter_by(user_invited_id=user_id).all()
     invites_json = []
     for i in invites:
@@ -65,6 +76,11 @@ def invites_service(user_id):
     )
 
 def edit_user_service(data, user_id):
+    try:
+        user_id = UUID(user_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     img = data.get("img")
     name = data.get("username")
     if not (img or name):
@@ -97,6 +113,11 @@ def edit_user_service(data, user_id):
     })
 
 def remove_pfp_service(user_id):
+    try:
+        user_id = UUID(user_id)
+    except (ValueError, TypeError):
+        return error(code="BAD_REQUEST", message="invalid id.")
+
     user = db.session.get(User, user_id)
     if not user.image:
         return error(code="NOT_FOUND", message="pfp not found.", status=404)

@@ -1,6 +1,6 @@
 from models.user import User
 from extensions import db, bcrypt
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, create_refresh_token
 from ..utils.responses import error, success
 
 def login_service(data):
@@ -26,9 +26,11 @@ def login_service(data):
             }
         }, 400
     token = create_access_token(identity=str(user.id))
+    refresh_token = create_refresh_token(identity=str(user.id))
     return {
         "data": {
             "access_token": token,
+            "refresh_token": refresh_token,
             "user": {
                 "id": user.id,
                 "username": user.username

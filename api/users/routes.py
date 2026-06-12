@@ -1,7 +1,6 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .services import user_service, invites_service, edit_user_service, remove_pfp_service, search_user_service
-import uuid
 
 users_bp = Blueprint("users", __name__)
 
@@ -9,8 +8,7 @@ users_bp = Blueprint("users", __name__)
 @users_bp.route("/users/<id>")
 @jwt_required()
 def user(id):
-    user_id = uuid.UUID(id)
-    response = user_service(user_id)
+    response = user_service(id)
     return response
 
 @users_bp.route("/users")
@@ -25,20 +23,20 @@ def search_user():
 def edit_user():
     data = request.form.copy()
     data["img"] = request.files.get("img")
-    user_id = uuid.UUID(get_jwt_identity())
+    user_id = get_jwt_identity()
     response = edit_user_service(data, user_id)
     return response
     
 @users_bp.route("/users/invites")
 @jwt_required()
 def invites():
-    user_id = uuid.UUID(get_jwt_identity())
+    user_id = get_jwt_identity()
     response = invites_service(user_id)
     return response
 
 @users_bp.route("/users/remove-pfp", methods=["DELETE"])
 @jwt_required()
 def remove_pfp():
-    user_id = uuid.UUID(get_jwt_identity())
+    user_id = get_jwt_identity()
     response = remove_pfp_service(user_id)
     return response

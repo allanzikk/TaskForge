@@ -36,20 +36,26 @@ def handle_join(data):
 
     messages = Message.query.filter_by(org_id=org_id)\
         .options(joinedload(Message.user).joinedload(User.image))\
-        .order_by(Message.created_at.asc())\
-        .limit(50)\
+        .order_by(Message.created_at.desc())\
+        .limit(21)\
         .all()
+    
+    has_more = len(messages) > 20
+    messages = messages[:20]
     
     emit('chat_history', {'messages': [
         {
             'id': str(m.id),
             'user_id': str(m.user_id),
             'username': m.user.username,
-            "pfp_url": request.host_url+messages.user.image.img_path if m.user.image else None,
+            "pfp_url": request.host_url+m.user.image.img_path if m.user.image else None,
             'content': m.content,
             'created_at': m.created_at.isoformat()
+            
         } for m in messages
-    ]})
+    ],
+    'has_more': has_more
+    })
 
 @socketio.on("send_message")
 def handle_message(data):
