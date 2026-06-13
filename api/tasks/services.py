@@ -10,7 +10,8 @@ def tasks_service(project_id, user_id, cursor_created_at, cursor_id, limit):
     try:
         project_id = UUID(project_id)
         user_id = UUID(user_id)
-        cursor_id = UUID(cursor_id)
+        if cursor_id:
+            cursor_id = UUID(cursor_id)
     except (ValueError, TypeError):
         return error(code="BAD_REQUEST", message="invalid id.")
 
